@@ -179,8 +179,8 @@ export default function GradingSuggestionPanel() {
           style={{ marginBottom: 24 }}
         >
           <BeforeAfterSlider
-            afterSrc={`${API_BASE}${originalUrl}`}
-            beforeSrc={
+            beforeSrc={`${API_BASE}${originalUrl}`}
+            afterSrc={
               compareSuggestion.preview_url
                 ? `${API_BASE}${compareSuggestion.preview_url}`
                 : `${API_BASE}${originalUrl}`

@@ -111,6 +111,9 @@ def _clamp(value: float, lo: float, hi: float) -> float:
 def sanitize_ai_params(raw: dict) -> dict:
     """Clamp all numeric values in an AI-generated parameter dict so they
     pass ColorParams validation.  Modifies and returns *raw* in-place.
+
+    Also enforces quality-safe limits: forces grain=0, caps clarity/dehaze
+    to reasonable ranges to prevent noise/artifact introduction.
     """
     for dotpath, (lo, hi) in _CLAMP_RULES.items():
         parts = dotpath.split(".")
@@ -123,6 +126,16 @@ def sanitize_ai_params(raw: dict) -> dict:
             key = parts[-1]
             if isinstance(obj, dict) and key in obj and isinstance(obj[key], (int, float)):
                 obj[key] = _clamp(float(obj[key]), lo, hi)
+
+    # Force grain to 0 — it only degrades image quality
+    effects = raw.get("effects")
+    if isinstance(effects, dict):
+        effects["grain"] = 0
+        # Cap clarity and dehaze to safe ranges
+        if "clarity" in effects:
+            effects["clarity"] = _clamp(float(effects["clarity"]), -30, 30)
+        if "dehaze" in effects:
+            effects["dehaze"] = _clamp(float(effects["dehaze"]), -20, 25)
 
     # HSL channels: hue [-180, 180], saturation/luminance [-100, 100]
     hsl = raw.get("hsl")

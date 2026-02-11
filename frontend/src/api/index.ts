@@ -114,7 +114,14 @@ export const gradingApi = {
 export const aiApi = {
   getProviders: () =>
     api
-      .get<{ providers: string[]; current: string }>('/api/ai/providers')
+      .get<{
+        providers: string[];
+        current: string;
+        model: string;
+        base_url: string;
+        api_key_masked: string;
+        api_key_set: boolean;
+      }>('/api/ai/providers')
       .then((r) => r.data),
 
   setProvider: (config: {

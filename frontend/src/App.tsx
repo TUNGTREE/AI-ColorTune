@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { Layout, Typography, Steps, Button, theme } from 'antd';
-import { SettingOutlined } from '@ant-design/icons';
+import { Layout, Typography, Steps, Button, Space, Popconfirm, theme } from 'antd';
+import { SettingOutlined, ArrowLeftOutlined, HomeOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import StyleDiscovery from './components/StyleDiscovery';
 import GradingSuggestionPanel from './components/GradingSuggestion';
@@ -25,7 +25,7 @@ const STEP_ITEMS = [
 function App() {
   const [backendStatus, setBackendStatus] = useState<string>('checking...');
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const { currentStep } = useAppStore();
+  const { currentStep, goBack, reset } = useAppStore();
   const { token } = theme.useToken();
 
   useEffect(() => {
@@ -48,33 +48,65 @@ function App() {
           height: 56,
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, minWidth: 160 }}>
           <div
             style={{
               width: 28,
               height: 28,
               borderRadius: 8,
               background: `linear-gradient(135deg, ${token.colorPrimary}, #8b5cf6)`,
+              cursor: 'pointer',
             }}
+            onClick={reset}
+            title="Back to home"
           />
           <Title level={4} style={{ color: '#fff', margin: 0, fontWeight: 600 }}>
             ColorTune
           </Title>
         </div>
+
         <Steps
           current={currentStep}
           items={STEP_ITEMS}
           size="small"
           style={{ maxWidth: 500 }}
         />
-        <Button
-          type="text"
-          icon={<SettingOutlined />}
-          onClick={() => setSettingsOpen(true)}
-          style={{ color: 'rgba(255,255,255,0.65)' }}
-        >
-          AI Settings
-        </Button>
+
+        <Space size={4} style={{ minWidth: 280, justifyContent: 'flex-end' }}>
+          {currentStep > 0 && (
+            <Button
+              type="text"
+              icon={<ArrowLeftOutlined />}
+              onClick={goBack}
+              style={{ color: 'rgba(255,255,255,0.65)' }}
+            >
+              Back
+            </Button>
+          )}
+          <Popconfirm
+            title="Start over?"
+            description="This will reset all progress."
+            onConfirm={reset}
+            okText="Yes"
+            cancelText="No"
+          >
+            <Button
+              type="text"
+              icon={<HomeOutlined />}
+              style={{ color: 'rgba(255,255,255,0.65)' }}
+            >
+              Home
+            </Button>
+          </Popconfirm>
+          <Button
+            type="text"
+            icon={<SettingOutlined />}
+            onClick={() => setSettingsOpen(true)}
+            style={{ color: 'rgba(255,255,255,0.65)' }}
+          >
+            AI
+          </Button>
+        </Space>
       </Header>
 
       <Content style={{ padding: '16px 24px', minHeight: 'calc(100vh - 56px - 40px)' }}>

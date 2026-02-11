@@ -362,25 +362,34 @@ def apply_split_toning(img: np.ndarray,
 # ---------------------------------------------------------------------------
 
 def adjust_clarity(img: np.ndarray, amount: float) -> np.ndarray:
-    """Enhance midtone contrast (clarity) using unsharp mask on luminance."""
+    """Enhance midtone contrast (clarity) using unsharp mask on luminance.
+
+    Uses a larger blur radius and gentler blending to avoid amplifying noise.
+    """
     if amount == 0:
         return img
     strength = amount / 100.0
     # Convert to uint8 for OpenCV operations
     img_u8 = (img * 255).astype(np.uint8)
     gray = cv2.cvtColor(img_u8, cv2.COLOR_RGB2GRAY)
-    # Large-radius blur for midtone detail
-    blurred = cv2.GaussianBlur(gray, (0, 0), sigmaX=10)
+    # Large-radius blur for midtone detail (larger sigma = smoother = less noise)
+    blurred = cv2.GaussianBlur(gray, (0, 0), sigmaX=20)
     # High-pass = original - blurred
     high_pass = gray.astype(np.float32) - blurred.astype(np.float32)
     high_pass = high_pass / 255.0
-    # Add weighted high-pass back to all channels
-    result = img + strength * 0.5 * high_pass[..., np.newaxis]
+    # Suppress noise: only keep significant detail (threshold small values)
+    high_pass = np.where(np.abs(high_pass) < 0.02, 0.0, high_pass)
+    # Add weighted high-pass back to all channels (reduced strength)
+    result = img + strength * 0.3 * high_pass[..., np.newaxis]
     return _clamp(result)
 
 
 def adjust_dehaze(img: np.ndarray, amount: float) -> np.ndarray:
-    """Dehaze using simplified dark channel prior."""
+    """Dehaze using simplified dark channel prior.
+
+    Improved to avoid amplifying noise in dark areas by using a gentler
+    recovery and a minimum transmission floor.
+    """
     if amount == 0:
         return img
     strength = amount / 100.0
@@ -392,12 +401,12 @@ def adjust_dehaze(img: np.ndarray, amount: float) -> np.ndarray:
     num_pixels = max(int(flat.size * 0.001), 1)
     top_indices = np.argpartition(flat, -num_pixels)[-num_pixels:]
     atmospheric = np.mean(img.reshape(-1, 3)[top_indices], axis=0)
-    atmospheric = np.maximum(atmospheric, 0.1)
+    atmospheric = np.maximum(atmospheric, 0.2)
 
-    # Transmission estimate
+    # Transmission estimate (higher floor to prevent noise amplification)
     normalized = img / atmospheric[np.newaxis, np.newaxis, :]
-    transmission = 1.0 - strength * 0.9 * np.min(normalized, axis=2, keepdims=True)
-    transmission = np.maximum(transmission, 0.1)
+    transmission = 1.0 - strength * 0.7 * np.min(normalized, axis=2, keepdims=True)
+    transmission = np.maximum(transmission, 0.3)  # Higher floor = less noise
 
     # Recover scene
     result = (img - atmospheric) / transmission + atmospheric
@@ -421,9 +430,10 @@ def apply_vignette(img: np.ndarray, amount: float) -> np.ndarray:
 
 
 def apply_grain(img: np.ndarray, amount: float) -> np.ndarray:
-    """Add film grain noise."""
+    """Add film grain noise. Capped to very low strength to avoid quality loss."""
     if amount == 0:
         return img
-    strength = amount / 100.0 * 0.15
+    # Very gentle grain — cap at 5% noise to preserve quality
+    strength = min(amount / 100.0, 0.05) * 0.1
     noise = np.random.normal(0, strength, img.shape).astype(np.float32)
     return _clamp(img + noise)

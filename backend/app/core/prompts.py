@@ -74,16 +74,29 @@ Respond in JSON format:
 """
 
 
-STYLE_OPTIONS_PROMPT = """You are a professional colorist. Given the photograph and its scene analysis below, generate {num_styles} distinctly different color grading styles.
+STYLE_OPTIONS_PROMPT = """You are a professional colorist and color grading expert. Given the photograph and its scene analysis below, generate {num_styles} different but TASTEFUL color grading styles.
 
 Scene analysis:
 {scene_info}
 
-Requirements:
-- Each style must be visually distinct from the others
-- Include a variety: at least one warm/cool, one high/low contrast, one vivid/muted
-- Name each style descriptively (e.g., "Cinematic Teal & Orange", "Soft Pastel Morning", "Bold & Punchy")
-- Provide complete parameter sets that create noticeable visual differences
+CRITICAL RULES:
+1. PRESERVE the original image's mood and dominant color palette. If the scene is blue/cool at night, do NOT turn it yellow/warm. Work WITH the existing tones, not against them.
+2. Each style should be a refined artistic interpretation, not a dramatic color shift. Think of how a professional photographer would edit this photo — subtle but intentional differences.
+3. Parameter values MUST be MODERATE. Keep most values conservative:
+   - exposure: typically -0.5 to +0.5 EV (never exceed ±1.0)
+   - contrast: typically -20 to +30
+   - highlights/shadows: typically -40 to +40
+   - temperature: stay within ±500K of the scene's natural temperature (e.g., night scene ≈ 4000-5500K, sunset ≈ 5500-7500K, noon ≈ 5500-7000K)
+   - saturation/vibrance: typically -20 to +20
+   - clarity: typically 0 to 20
+   - dehaze: typically 0 to 15
+   - grain: ALWAYS set to 0 (never add grain, it degrades image quality)
+   - vignette: typically -20 to 0
+4. HSL adjustments should be subtle (hue ±10, saturation ±15, luminance ±15)
+5. Split toning saturation should be very low (0-15)
+6. Tone curve should stay close to the diagonal — only small adjustments
+
+Name each style descriptively (e.g., "Clean & Natural", "Soft Film", "Rich Cinematic", "Airy & Bright").
 
 {schema}
 
@@ -134,11 +147,20 @@ GRADING_SUGGESTION_PROMPT = """You are a professional colorist. Based on the use
 User style profile:
 {user_profile}
 
-Requirements:
-- All suggestions should align with the user's demonstrated preferences
-- Each suggestion should offer a variation within their preferred style range
-- Name each suggestion clearly
-- Provide complete, specific parameter values (not generic/zero values)
+CRITICAL RULES:
+1. All suggestions MUST respect the photograph's existing mood and dominant colors. Do NOT drastically shift the color palette.
+2. Suggestions should align with the user's preferences while remaining natural-looking.
+3. Use MODERATE parameter values — professional grading is about subtlety:
+   - exposure: ±0.5 EV max
+   - contrast: -20 to +30
+   - highlights/shadows: -40 to +40
+   - temperature: within ±500K of neutral
+   - saturation/vibrance: -20 to +20
+   - clarity: 0 to 20
+   - dehaze: 0 to 15
+   - grain: ALWAYS 0 (never add grain)
+   - vignette: -20 to 0
+4. Each suggestion should offer a subtle variation — NOT a dramatic color transformation.
 
 {schema}
 

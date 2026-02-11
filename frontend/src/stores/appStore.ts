@@ -20,9 +20,11 @@ interface AppState {
   setGradingTask: (t: GradingTask | null) => void;
   setSelectedSuggestion: (s: GradingSuggestion | null) => void;
   setFinalParams: (p: ColorParams | null) => void;
+  goBack: () => void;
+  reset: () => void;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set, get) => ({
   session: null,
   profile: null,
   currentStep: 0,
@@ -36,4 +38,21 @@ export const useAppStore = create<AppState>((set) => ({
   setGradingTask: (gradingTask) => set({ gradingTask }),
   setSelectedSuggestion: (selectedSuggestion) => set({ selectedSuggestion }),
   setFinalParams: (finalParams) => set({ finalParams }),
+
+  goBack: () => {
+    const { currentStep } = get();
+    if (currentStep > 0) {
+      set({ currentStep: currentStep - 1 });
+    }
+  },
+
+  reset: () =>
+    set({
+      session: null,
+      profile: null,
+      currentStep: 0,
+      gradingTask: null,
+      selectedSuggestion: null,
+      finalParams: null,
+    }),
 }));
