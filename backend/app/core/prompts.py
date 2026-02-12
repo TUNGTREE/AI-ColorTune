@@ -1,6 +1,9 @@
 """Prompt templates for AI providers.
 
 All prompts instruct the AI to output structured JSON conforming to ColorParams schema.
+Uses perceptual color science principles (LAB/LCH color space concepts, warm/cool
+classification, complementary palette theory) to ensure maximally distinctive yet
+tasteful style options.
 """
 
 COLOR_PARAMS_SCHEMA_DESCRIPTION = """
@@ -74,37 +77,87 @@ Respond in JSON format:
 """
 
 
-STYLE_OPTIONS_PROMPT = """You are a professional colorist and color grading expert. Given the photograph and its scene analysis below, generate {num_styles} different but TASTEFUL color grading styles.
+STYLE_OPTIONS_PROMPT = """You are an expert colorist with deep knowledge of perceptual color science (LAB/LCH color spaces, CIEDE2000 color difference, warm/cool hue classification).
+
+Given the photograph and its scene analysis, generate exactly {num_styles} color grading styles that are MAXIMALLY PERCEPTUALLY DISTINCT from each other while all remaining tasteful and appropriate for this image.
 
 Scene analysis:
 {scene_info}
 
-CRITICAL RULES:
-1. PRESERVE the original image's mood and dominant color palette. If the scene is blue/cool at night, do NOT turn it yellow/warm. Work WITH the existing tones, not against them.
-2. Each style should be a refined artistic interpretation, not a dramatic color shift. Think of how a professional photographer would edit this photo — subtle but intentional differences.
-3. Parameter values MUST be MODERATE. Keep most values conservative:
-   - exposure: typically -0.5 to +0.5 EV (never exceed ±1.0)
-   - contrast: typically -20 to +30
-   - highlights/shadows: typically -40 to +40
-   - temperature: stay within ±500K of the scene's natural temperature (e.g., night scene ≈ 4000-5500K, sunset ≈ 5500-7500K, noon ≈ 5500-7000K)
-   - saturation/vibrance: typically -20 to +20
-   - clarity: typically 0 to 20
-   - dehaze: typically 0 to 15
-   - grain: ALWAYS set to 0 (never add grain, it degrades image quality)
-   - vignette: typically -20 to 0
-4. HSL adjustments should be subtle (hue ±10, saturation ±15, luminance ±15)
-5. Split toning saturation should be very low (0-15)
-6. Tone curve should stay close to the diagonal — only small adjustments
+## DIVERSITY FRAMEWORK — Each style MUST occupy a different position along these perceptual axes:
 
-Name each style descriptively (e.g., "Clean & Natural", "Soft Film", "Rich Cinematic", "Airy & Bright").
+**Axis 1: Color Temperature Direction**
+- Warm-shifted (temperature > 6500K, orange/amber tones)
+- Neutral/faithful (temperature ≈ 6500K)
+- Cool-shifted (temperature < 6500K, blue/cyan tones)
+
+**Axis 2: Tonal Character (Lightness distribution)**
+- Bright & airy (lifted shadows, positive exposure, lower contrast)
+- Balanced & natural (neutral exposure, moderate contrast)
+- Deep & moody (crushed blacks, negative exposure, higher contrast)
+
+**Axis 3: Chroma/Saturation Strategy**
+- Vivid & saturated (boosted vibrance/saturation, enhanced HSL chroma)
+- Selective saturation (vibrance boost with saturation neutral, accent specific hues)
+- Desaturated/muted (reduced saturation, faded look)
+
+**Axis 4: Split Toning Harmony (using color wheel)**
+- Complementary split: highlights warm (30-60°) / shadows cool (200-240°)
+- Analogous split: highlights and shadows within 60° of each other
+- Monochromatic: no split toning (saturation = 0)
+
+## MANDATORY: You MUST generate styles that differ across AT LEAST 2 of these 4 axes. No two styles should share the same position on more than 2 axes.
+
+## ARCHETYPE GUIDE — Use these as starting templates, then adapt to fit the scene:
+
+1. **Clean & Natural** — Faithful colors, balanced exposure, minimal processing. Slight clarity boost. Like a well-exposed DSLR shot. (Neutral temp, balanced tone, moderate chroma, no split tone)
+
+2. **Warm Cinematic** — Warm highlights with teal/blue shadows. Classic orange-teal cinema look. Slightly lifted blacks, gentle S-curve. (Warm temp, balanced-to-deep tone, selective chroma, complementary split)
+
+3. **Cool & Ethereal** — Cool temperature, lifted shadows, soft contrast. Dreamy, airy feel. Slight desaturation with blue-purple split toning. (Cool temp, bright tone, muted chroma, analogous cool split)
+
+4. **Rich & Vivid** — Enhanced saturation and vibrance, strong clarity. Punchy colors with good contrast. Like a high-end travel photograph. (Neutral-warm temp, balanced tone, vivid chroma, monochromatic)
+
+5. **Moody Film** — Faded blacks (lift shadow end of tone curve), slight desaturation, warm tint. Analog film nostalgia. (Warm temp, deep tone, muted chroma, warm analogous split)
+
+6. **High Contrast B&W-adjacent** — Strong contrast, reduced saturation, dramatic shadows. Not fully B&W but a desaturated, editorial look. (Neutral-cool temp, deep tone, very muted chroma, monochromatic)
+
+Select {num_styles} archetypes from above that best suit this specific scene, then customize their parameters to work WITH the image's existing colors. Do NOT use archetypes that would fight the scene (e.g., don't use "Warm Cinematic" on a night scene that is naturally cold/blue — instead adapt the warm elements to complement the existing palette).
+
+## PARAMETER GUIDELINES (professional ranges):
+- exposure: -0.8 to +0.8 EV (use the FULL range to create visible differences between styles)
+- contrast: -30 to +40 (vary significantly between styles)
+- highlights: -50 to +30
+- shadows: -30 to +50
+- whites/blacks: -30 to +30
+- temperature: 5000-8000K (vary by at least 500K between warm/cool styles)
+- tint: -15 to +15
+- vibrance: -25 to +30 (MUST differ between styles)
+- saturation: -30 to +20 (MUST differ between styles)
+- clarity: -10 to 25
+- dehaze: 0 to 15
+- grain: ALWAYS 0 (never add grain)
+- vignette: -25 to 0
+- HSL hue shifts: ±15 (use to push specific color families)
+- HSL saturation: ±20 (use to accent or mute specific hues)
+- HSL luminance: ±20
+- Split toning saturation: 0-20
+- Tone curve: use S-curves (darken shadows, brighten highlights) or inverse-S, or lifted blacks. DO NOT leave all styles with the default flat curve.
+
+## CRITICAL: Make styles VISUALLY DISTINGUISHABLE
+- At least one style should be noticeably warmer and one cooler
+- At least one should be brighter/airier and one deeper/moodier
+- At least one should have more saturated colors and one more muted
+- The tone curve should differ between styles (some with S-curve, some with lifted blacks, some flat)
+- Use split toning to create different color character between styles
 
 {schema}
 
-Respond with a JSON array of style objects:
+Respond with a JSON array of exactly {num_styles} style objects:
 [
   {{
     "style_name": "descriptive name",
-    "description": "brief description of the look",
+    "description": "brief description of the look and which archetype it's based on",
     "parameters": <complete ColorParams JSON>
   }},
   ...
@@ -114,53 +167,97 @@ Output ONLY the JSON array, no other text.
 """
 
 
-PREFERENCE_ANALYSIS_PROMPT = """Analyze the user's color grading style preferences based on their selections across multiple rounds.
+PREFERENCE_ANALYSIS_PROMPT = """You are a color science expert analyzing a user's color grading preferences. Use perceptual color theory to identify their aesthetic patterns.
 
-User selections:
+User selections across {num_rounds} rounds of style discovery:
 {selections}
 
-For each round, the user was shown multiple style options and selected their preferred one.
-Analyze patterns in their choices regarding:
-1. Color temperature preference (warm vs cool)
-2. Contrast preference (high vs low)
-3. Saturation preference (vivid vs muted)
-4. Tone preference (bright/airy vs dark/moody)
-5. Common color palette tendencies
-6. Effects preferences (clarity, grain, vignette)
+For each round, the user was shown multiple distinct style options (varying in color temperature, tonal character, chroma strategy, and split toning) and selected their preferred one.
+
+Analyze their choices along these PERCEPTUAL DIMENSIONS:
+
+1. **Temperature axis (LAB b-channel tendency):**
+   - Do they consistently pick warm-shifted styles (b > 0, orange/amber)?
+   - Or cool-shifted styles (b < 0, blue/cyan)?
+   - Or neutral/faithful?
+
+2. **Lightness distribution (LAB L-channel):**
+   - Do they prefer bright/airy looks (lifted shadows, high average L)?
+   - Or deep/moody looks (crushed blacks, low average L)?
+   - Or balanced midtones?
+
+3. **Chroma preference (LCH C-channel):**
+   - Do they favor vivid, high-chroma colors?
+   - Or muted, desaturated palettes?
+   - Or selective saturation (vibrance > saturation)?
+
+4. **Tone curve shape preference:**
+   - S-curve (high contrast)?
+   - Lifted blacks (film look)?
+   - Linear (natural)?
+
+5. **Color harmony pattern:**
+   - Complementary splits (orange-teal)?
+   - Analogous color families?
+   - Monochromatic/minimal color grading?
+
+6. **Scene adaptation:**
+   - Do they grade differently for different scenes, or maintain a consistent style?
 
 Respond in JSON format:
 {{
   "temperature_preference": "warm|neutral|cool",
+  "temperature_detail": "specific description of their temperature tendencies",
   "contrast_preference": "high|medium|low",
+  "lightness_preference": "bright|balanced|dark",
   "saturation_preference": "vivid|moderate|muted",
-  "tone_preference": "bright|balanced|dark",
-  "color_tendencies": ["description of color patterns"],
-  "effects_notes": "description of effects preferences",
-  "overall_style_summary": "2-3 sentence summary of their style",
-  "reference_styles": ["closest professional style references"]
+  "chroma_strategy": "global_boost|selective_vibrance|desaturated",
+  "tone_curve_preference": "s_curve|lifted_blacks|linear|varies",
+  "color_harmony": "complementary|analogous|monochromatic|mixed",
+  "color_tendencies": ["specific color patterns observed, e.g. 'favors teal shadows', 'boosts orange/red warmth'"],
+  "effects_notes": "clarity, vignette, and processing preferences",
+  "overall_style_summary": "2-3 sentence summary of their style in professional colorist terms",
+  "reference_styles": ["closest professional/cinematic style references, e.g. 'Wes Anderson warm pastels', 'Fincher desaturated teal'"]
 }}
 """
 
 
-GRADING_SUGGESTION_PROMPT = """You are a professional colorist. Based on the user's style profile and the new photograph, generate {num_suggestions} personalized color grading suggestions.
+GRADING_SUGGESTION_PROMPT = """You are an expert colorist. Based on the user's analyzed style profile and this new photograph, generate {num_suggestions} personalized color grading suggestions.
 
 User style profile:
 {user_profile}
 
-CRITICAL RULES:
-1. All suggestions MUST respect the photograph's existing mood and dominant colors. Do NOT drastically shift the color palette.
-2. Suggestions should align with the user's preferences while remaining natural-looking.
-3. Use MODERATE parameter values — professional grading is about subtlety:
-   - exposure: ±0.5 EV max
-   - contrast: -20 to +30
-   - highlights/shadows: -40 to +40
-   - temperature: within ±500K of neutral
-   - saturation/vibrance: -20 to +20
-   - clarity: 0 to 20
+## YOUR TASK:
+Apply the user's preferred aesthetic (temperature, contrast, chroma, tone curve, color harmony) to this specific photograph. Each suggestion should be a variation that aligns with their taste but offers a slightly different interpretation.
+
+## ADAPTATION RULES:
+1. **Respect the photograph's existing palette.** Analyze the image's dominant colors and work WITH them. If the image is naturally warm, and the user prefers warm styles, enhance the warmth. If the image is naturally cool but the user prefers warm, create a subtle warm shift that doesn't fight the scene.
+
+2. **Apply the user's profile intelligently:**
+   - If they prefer "warm" temperature → shift temperature toward 7000-7500K
+   - If they prefer "cool" temperature → shift temperature toward 5500-6000K
+   - If they prefer "high contrast" → use S-curve and contrast +20 to +35
+   - If they prefer "vivid" → boost vibrance +15 to +25, saturation +5 to +15
+   - If they prefer "muted" → reduce saturation -10 to -25, keep vibrance near 0
+   - If they prefer "bright" → lift shadows +20 to +40, exposure +0.2 to +0.5
+   - If they prefer "dark/moody" → deepen shadows -10 to -30, slight negative exposure
+
+3. **Create meaningful variations between suggestions:**
+   - Suggestion 1: Closest match to their profile (most faithful interpretation)
+   - Suggestion 2: A bolder version pushing their preferences further
+   - Suggestion 3: A complementary variation (e.g., if they prefer warm, try a warm-neutral that's more restrained)
+
+4. **Parameter ranges (professional, not extreme):**
+   - exposure: -0.8 to +0.8 EV
+   - contrast: -25 to +35
+   - highlights/shadows: -50 to +50
+   - temperature: 5000-8000K
+   - saturation: -30 to +20
+   - vibrance: -20 to +30
+   - clarity: -10 to 25
    - dehaze: 0 to 15
-   - grain: ALWAYS 0 (never add grain)
-   - vignette: -20 to 0
-4. Each suggestion should offer a subtle variation — NOT a dramatic color transformation.
+   - grain: ALWAYS 0
+   - vignette: -25 to 0
 
 {schema}
 
@@ -168,7 +265,7 @@ Respond with a JSON array:
 [
   {{
     "suggestion_name": "descriptive name",
-    "description": "why this suits their style and this photo",
+    "description": "why this suits their style and this specific photo",
     "parameters": <complete ColorParams JSON>
   }},
   ...

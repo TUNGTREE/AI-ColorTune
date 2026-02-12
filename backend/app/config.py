@@ -17,6 +17,8 @@ class Settings(BaseSettings):
     CLAUDE_API_KEY: str = ""
     OPENAI_API_KEY: str = ""
     OPENAI_BASE_URL: str = ""  # Custom base URL for OpenAI-compatible APIs (e.g. DashScope)
+    DEEPSEEK_API_KEY: str = ""
+    GLM_API_KEY: str = ""
     DEFAULT_AI_PROVIDER: str = "openai"
     DEFAULT_AI_MODEL: str = ""  # Default model name (e.g. qwen-vl-plus)
 

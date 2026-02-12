@@ -116,6 +116,8 @@ export const aiApi = {
     api
       .get<{
         providers: string[];
+        provider_labels: Record<string, string>;
+        default_models: Record<string, string>;
         current: string;
         model: string;
         base_url: string;

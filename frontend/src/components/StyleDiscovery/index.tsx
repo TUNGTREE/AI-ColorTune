@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Card, Row, Col, Typography, Spin, Button, message, Progress, theme } from 'antd';
-import { CheckCircleFilled, ThunderboltOutlined } from '@ant-design/icons';
+import { Row, Col, Typography, Spin, Button, message, Progress, theme } from 'antd';
+import { CheckCircleFilled, ThunderboltOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { styleApi } from '../../api';
 import { useAppStore } from '../../stores/appStore';
 import type { SampleScene, StyleRound, StyleOption } from '../../types';
@@ -10,6 +10,7 @@ const { Title, Text } = Typography;
 const API_BASE = 'http://localhost:8000';
 
 const MIN_ROUNDS = 3;
+const MAX_ROUNDS = 12;
 
 type Phase = 'samples' | 'options' | 'loading';
 
@@ -34,6 +35,7 @@ export default function StyleDiscovery() {
 
   const completedCount = completedSampleIds.size;
   const canAnalyze = completedCount >= MIN_ROUNDS;
+  const allDone = completedCount >= MAX_ROUNDS;
 
   // Handle sample card click
   const handleSampleClick = useCallback(
@@ -237,6 +239,7 @@ export default function StyleDiscovery() {
               setCurrentRound(null);
               setCurrentSampleId(null);
             }}
+            icon={<ArrowLeftOutlined />}
             style={{ color: 'rgba(255,255,255,0.45)' }}
             type="text"
           >
@@ -255,15 +258,19 @@ export default function StyleDiscovery() {
           Discover Your Style
         </Title>
         <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 14 }}>
-          Select scenes to explore different color grading styles. Complete at least{' '}
-          {MIN_ROUNDS} rounds to build your profile.
+          Select scenes to explore different color grading styles.
+          {completedCount < MIN_ROUNDS
+            ? ` Complete at least ${MIN_ROUNDS} rounds to build your profile.`
+            : completedCount < MAX_ROUNDS
+              ? ' You can analyze now or continue for better accuracy.'
+              : ' All scenes completed!'}
         </Text>
       </div>
 
       {/* Progress indicator */}
       <div
         style={{
-          maxWidth: 400,
+          maxWidth: 500,
           margin: '0 auto 24px',
           display: 'flex',
           alignItems: 'center',
@@ -271,16 +278,54 @@ export default function StyleDiscovery() {
         }}
       >
         <Progress
-          percent={(completedCount / MIN_ROUNDS) * 100}
+          percent={(completedCount / MAX_ROUNDS) * 100}
+          success={{ percent: (Math.min(completedCount, MIN_ROUNDS) / MAX_ROUNDS) * 100 }}
           showInfo={false}
           strokeColor={token.colorPrimary}
           railColor="#2a2a2a"
           size="small"
         />
         <Text style={{ color: 'rgba(255,255,255,0.45)', fontSize: 12, whiteSpace: 'nowrap' }}>
-          {completedCount} / {MIN_ROUNDS}
+          {completedCount} / {MAX_ROUNDS}
         </Text>
       </div>
+
+      {/* Analyze button — prominent when available */}
+      {canAnalyze && (
+        <div
+          style={{
+            textAlign: 'center',
+            marginBottom: 24,
+            padding: '16px',
+            background: 'rgba(91, 106, 191, 0.08)',
+            borderRadius: 12,
+            border: '1px solid rgba(91, 106, 191, 0.2)',
+          }}
+        >
+          <div style={{ marginBottom: 8 }}>
+            <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13 }}>
+              {allDone
+                ? 'All scenes completed! Ready to analyze your style.'
+                : `${completedCount} rounds completed. You can analyze now or continue for more accurate results (${MAX_ROUNDS - completedCount} scenes remaining).`}
+            </Text>
+          </div>
+          <Button
+            type="primary"
+            size="large"
+            icon={<ThunderboltOutlined />}
+            loading={analyzing}
+            onClick={handleAnalyze}
+            style={{
+              height: 48,
+              paddingInline: 32,
+              borderRadius: 12,
+              fontWeight: 600,
+            }}
+          >
+            Analyze My Style Preferences ({completedCount} rounds)
+          </Button>
+        </div>
+      )}
 
       {/* Sample grid */}
       <Row gutter={[16, 16]}>
@@ -371,27 +416,12 @@ export default function StyleDiscovery() {
         })}
       </Row>
 
-      {/* Analyze button */}
-      {completedCount > 0 && (
-        <div style={{ textAlign: 'center', marginTop: 32 }}>
-          <Button
-            type="primary"
-            size="large"
-            icon={<ThunderboltOutlined />}
-            disabled={!canAnalyze}
-            loading={analyzing}
-            onClick={handleAnalyze}
-            style={{
-              height: 48,
-              paddingInline: 32,
-              borderRadius: 12,
-              fontWeight: 600,
-            }}
-          >
-            {canAnalyze
-              ? 'Analyze My Style Preferences'
-              : `Need ${MIN_ROUNDS - completedCount} more round${MIN_ROUNDS - completedCount > 1 ? 's' : ''}`}
-          </Button>
+      {/* Bottom hint for users who haven't reached minimum */}
+      {completedCount > 0 && !canAnalyze && (
+        <div style={{ textAlign: 'center', marginTop: 24 }}>
+          <Text style={{ color: 'rgba(255,255,255,0.3)', fontSize: 13 }}>
+            {MIN_ROUNDS - completedCount} more round{MIN_ROUNDS - completedCount > 1 ? 's' : ''} needed before analysis
+          </Text>
         </div>
       )}
     </div>

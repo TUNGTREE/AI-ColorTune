@@ -89,7 +89,8 @@ class AIProvider(ABC):
     async def analyze_preferences(self, selections: list[dict]) -> dict:
         """Analyze user's style preferences from their selections."""
         prompt = PREFERENCE_ANALYSIS_PROMPT.format(
-            selections=json.dumps(selections, indent=2)
+            selections=json.dumps(selections, indent=2),
+            num_rounds=len(selections),
         )
         # This is text-only, no image needed — use a simple text call
         response = await self.analyze_image("", prompt)
@@ -171,12 +172,44 @@ class OpenAIProvider(AIProvider):
         return response.choices[0].message.content
 
 
+class DeepSeekProvider(OpenAIProvider):
+    """DeepSeek AI provider (OpenAI-compatible API)."""
+
+    def __init__(self, api_key: str, model: str | None = None, base_url: str | None = None):
+        super().__init__(
+            api_key=api_key,
+            model=model or "deepseek-chat",
+            base_url=base_url or "https://api.deepseek.com",
+        )
+
+    @property
+    def provider_name(self) -> str:
+        return "deepseek"
+
+
+class GLMProvider(OpenAIProvider):
+    """GLM / ZhipuAI provider (OpenAI-compatible API)."""
+
+    def __init__(self, api_key: str, model: str | None = None, base_url: str | None = None):
+        super().__init__(
+            api_key=api_key,
+            model=model or "glm-4v-flash",
+            base_url=base_url or "https://open.bigmodel.cn/api/paas/v4",
+        )
+
+    @property
+    def provider_name(self) -> str:
+        return "glm"
+
+
 class AIProviderFactory:
     """Factory for creating AI provider instances."""
 
     _providers: dict[str, type[AIProvider]] = {
         "claude": ClaudeProvider,
         "openai": OpenAIProvider,
+        "deepseek": DeepSeekProvider,
+        "glm": GLMProvider,
     }
 
     @classmethod
@@ -184,7 +217,7 @@ class AIProviderFactory:
         provider_cls = cls._providers.get(name)
         if provider_cls is None:
             raise ValueError(f"Unknown provider: {name}. Available: {list(cls._providers.keys())}")
-        if name == "openai" and base_url:
+        if name in ("openai", "deepseek", "glm"):
             return provider_cls(api_key=api_key, model=model, base_url=base_url)
         return provider_cls(api_key=api_key, model=model)
 

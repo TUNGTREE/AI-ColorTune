@@ -55,6 +55,8 @@ export default function AISettingsModal({ open, onClose }: Props) {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [providers, setProviders] = useState<string[]>([]);
+  const [providerLabels, setProviderLabels] = useState<Record<string, string>>({});
+  const [defaultModels, setDefaultModels] = useState<Record<string, string>>({});
   const [saved, setSaved] = useState(false);
   const [apiKeyMasked, setApiKeyMasked] = useState('');
   const [apiKeySet, setApiKeySet] = useState(false);
@@ -68,6 +70,8 @@ export default function AISettingsModal({ open, onClose }: Props) {
         .getProviders()
         .then((data) => {
           setProviders(data.providers);
+          setProviderLabels(data.provider_labels || {});
+          setDefaultModels(data.default_models || {});
           setApiKeyMasked(data.api_key_masked);
           setApiKeySet(data.api_key_set);
           form.setFieldsValue({
@@ -85,6 +89,9 @@ export default function AISettingsModal({ open, onClose }: Props) {
   }, [open, form]);
 
   const selectedProvider = Form.useWatch('provider', form);
+
+  // Whether the selected provider uses base_url
+  const showBaseUrl = selectedProvider && selectedProvider !== 'claude';
 
   const handleSave = useCallback(async () => {
     try {
@@ -173,6 +180,22 @@ export default function AISettingsModal({ open, onClose }: Props) {
     [presets],
   );
 
+  // Get placeholder for model field based on selected provider
+  const modelPlaceholder = selectedProvider
+    ? defaultModels[selectedProvider] || 'model name'
+    : 'model name';
+
+  // Get placeholder for API key based on provider
+  const apiKeyPlaceholder = apiKeySet
+    ? 'Leave empty to keep current key'
+    : selectedProvider === 'claude'
+      ? 'sk-ant-...'
+      : selectedProvider === 'deepseek'
+        ? 'sk-...'
+        : selectedProvider === 'glm'
+          ? 'your-zhipuai-key'
+          : 'sk-...';
+
   return (
     <Modal
       title="AI Provider Settings"
@@ -253,7 +276,7 @@ export default function AISettingsModal({ open, onClose }: Props) {
                     marginLeft: 2,
                   }}
                 >
-                  ({p.provider}
+                  ({providerLabels[p.provider] || p.provider}
                   {p.model ? ` / ${p.model}` : ''})
                 </Text>
                 <Popconfirm
@@ -287,12 +310,7 @@ export default function AISettingsModal({ open, onClose }: Props) {
           <Select
             options={providers.map((p) => ({
               value: p,
-              label:
-                p === 'claude'
-                  ? 'Claude (Anthropic)'
-                  : p === 'openai'
-                    ? 'OpenAI / Compatible'
-                    : p,
+              label: providerLabels[p] || p,
             }))}
           />
         </Form.Item>
@@ -320,31 +338,25 @@ export default function AISettingsModal({ open, onClose }: Props) {
             },
           ]}
         >
-          <Input.Password
-            placeholder={
-              apiKeySet
-                ? 'Leave empty to keep current key'
-                : selectedProvider === 'claude'
-                  ? 'sk-ant-...'
-                  : 'sk-...'
-            }
-          />
+          <Input.Password placeholder={apiKeyPlaceholder} />
         </Form.Item>
 
-        {selectedProvider === 'openai' && (
+        {showBaseUrl && (
           <Form.Item name="base_url" label="Base URL (optional)">
-            <Input placeholder="https://api.openai.com/v1 (leave empty for default)" />
+            <Input
+              placeholder={
+                selectedProvider === 'deepseek'
+                  ? 'https://api.deepseek.com (default)'
+                  : selectedProvider === 'glm'
+                    ? 'https://open.bigmodel.cn/api/paas/v4 (default)'
+                    : 'https://api.openai.com/v1 (leave empty for default)'
+              }
+            />
           </Form.Item>
         )}
 
         <Form.Item name="model" label="Model (optional)">
-          <Input
-            placeholder={
-              selectedProvider === 'claude'
-                ? 'claude-sonnet-4-5-20250929'
-                : 'gpt-4o'
-            }
-          />
+          <Input placeholder={modelPlaceholder} />
         </Form.Item>
       </Form>
 
@@ -353,7 +365,7 @@ export default function AISettingsModal({ open, onClose }: Props) {
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <Input
           size="small"
-          placeholder="Preset name (e.g. DashScope-Qwen)"
+          placeholder="Preset name (e.g. DeepSeek-V3)"
           value={presetName}
           onChange={(e) => setPresetName(e.target.value)}
           onPressEnter={handleSavePreset}
