@@ -112,7 +112,7 @@ async def suggest(
     if task is None:
         raise HTTPException(404, "Task not found")
     try:
-        suggestions = await svc.generate_suggestions(task, req.num_suggestions)
+        suggestions = await svc.generate_suggestions(task, req.num_suggestions, custom_prompt=req.custom_prompt)
     except Exception as e:
         logger.exception("Failed to generate suggestions for task %s", task_id)
         raise HTTPException(502, f"AI service error: {e}")
@@ -151,7 +151,7 @@ async def regenerate_suggestions(
     db.commit()
 
     try:
-        suggestions = await svc.generate_suggestions(task, req.num_suggestions)
+        suggestions = await svc.generate_suggestions(task, req.num_suggestions, custom_prompt=req.custom_prompt)
     except Exception as e:
         logger.exception("Failed to regenerate suggestions for task %s", task_id)
         raise HTTPException(502, f"AI service error: {e}")

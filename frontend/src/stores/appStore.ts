@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { StyleSession, UserProfile, GradingTask, GradingSuggestion, ColorParams } from '../types';
+import { saveProfile as saveProfileToStorage } from '../utils/profileStorage';
 
 interface AppState {
   // Style discovery
@@ -20,6 +21,8 @@ interface AppState {
   setGradingTask: (t: GradingTask | null) => void;
   setSelectedSuggestion: (s: GradingSuggestion | null) => void;
   setFinalParams: (p: ColorParams | null) => void;
+  /** Load a saved profile and jump to grading suggestions step */
+  loadSavedProfile: (p: UserProfile) => void;
   goBack: () => void;
   reset: () => void;
 }
@@ -33,11 +36,27 @@ export const useAppStore = create<AppState>((set, get) => ({
   finalParams: null,
 
   setSession: (session) => set({ session }),
-  setProfile: (profile) => set({ profile }),
+  setProfile: (profile) => {
+    if (profile) {
+      saveProfileToStorage(profile);
+    }
+    set({ profile });
+  },
   setStep: (currentStep) => set({ currentStep }),
   setGradingTask: (gradingTask) => set({ gradingTask }),
   setSelectedSuggestion: (selectedSuggestion) => set({ selectedSuggestion }),
   setFinalParams: (finalParams) => set({ finalParams }),
+
+  loadSavedProfile: (profile) => {
+    set({
+      profile,
+      session: { id: '', user_id: profile.user_id, status: 'completed', rounds: [] },
+      currentStep: 1,
+      gradingTask: null,
+      selectedSuggestion: null,
+      finalParams: null,
+    });
+  },
 
   goBack: () => {
     const { currentStep } = get();

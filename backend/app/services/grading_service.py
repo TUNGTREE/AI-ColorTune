@@ -54,7 +54,7 @@ class GradingService:
     # Suggestion generation
     # ------------------------------------------------------------------
 
-    async def generate_suggestions(self, task: GradingTask, num_suggestions: int = 3) -> list[GradingSuggestion]:
+    async def generate_suggestions(self, task: GradingTask, num_suggestions: int = 3, custom_prompt: str | None = None) -> list[GradingSuggestion]:
         """Generate personalized grading suggestions using AI."""
         image_path = Path(task.original_image_path)
         img = self.processor.load_image(image_path)
@@ -76,7 +76,7 @@ class GradingService:
 
         # Generate suggestions via AI
         suggestions_data = await self.ai.generate_grading_suggestions(
-            image_b64, user_profile, num_suggestions
+            image_b64, user_profile, num_suggestions, custom_prompt=custom_prompt
         )
 
         # Create preview images and save suggestions

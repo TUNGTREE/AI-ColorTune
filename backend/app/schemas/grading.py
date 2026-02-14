@@ -13,6 +13,7 @@ class CreateTaskRequest(BaseModel):
 
 class SuggestRequest(BaseModel):
     num_suggestions: int = 3
+    custom_prompt: str | None = None
 
 
 class SelectSuggestionRequest(BaseModel):

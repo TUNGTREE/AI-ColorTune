@@ -1,9 +1,12 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { Row, Col, Typography, Spin, Button, message, Progress, theme } from 'antd';
-import { CheckCircleFilled, ThunderboltOutlined, ArrowLeftOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CheckCircleFilled, ThunderboltOutlined, ArrowLeftOutlined, ReloadOutlined, RightOutlined } from '@ant-design/icons';
 import { styleApi } from '../../api';
 import { useAppStore } from '../../stores/appStore';
+import PromptEditor from '../common/PromptEditor';
+import { getSavedProfiles } from '../../utils/profileStorage';
 import type { SampleScene, StyleRound, StyleOption } from '../../types';
+import type { SavedProfile } from '../../utils/profileStorage';
 
 const { Title, Text } = Typography;
 
@@ -15,7 +18,7 @@ const MAX_ROUNDS = 12;
 type Phase = 'samples' | 'options' | 'loading';
 
 export default function StyleDiscovery() {
-  const { session, setSession, setProfile, setStep } = useAppStore();
+  const { session, setSession, setProfile, setStep, loadSavedProfile } = useAppStore();
   const { token } = theme.useToken();
 
   const [samples, setSamples] = useState<SampleScene[]>([]);
@@ -26,12 +29,15 @@ export default function StyleDiscovery() {
   const [rounds, setRounds] = useState<StyleRound[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const customPromptRef = useRef<string | null>(null);
+  const [savedProfiles, setSavedProfiles] = useState<SavedProfile[]>([]);
 
   // Fetch samples on mount
   useEffect(() => {
     styleApi.getSamples().then(setSamples).catch(() => {
       message.error('Failed to load sample scenes');
     });
+    setSavedProfiles(getSavedProfiles());
   }, []);
 
   const completedCount = completedSampleIds.size;
@@ -56,7 +62,7 @@ export default function StyleDiscovery() {
         }
 
         // Create round from sample
-        const round = await styleApi.createRoundFromSample(sid!, sample.id);
+        const round = await styleApi.createRoundFromSample(sid!, sample.id, customPromptRef.current || undefined);
         setCurrentRound(round);
 
         if (!round.options || round.options.length === 0) {
@@ -124,7 +130,7 @@ export default function StyleDiscovery() {
     if (!currentRound) return;
     setRegenerating(true);
     try {
-      const newRound = await styleApi.regenerateOptions(currentRound.id);
+      const newRound = await styleApi.regenerateOptions(currentRound.id, customPromptRef.current || undefined);
       setCurrentRound(newRound);
       if (!newRound.options || newRound.options.length === 0) {
         message.warning('No style options generated. Try again or check AI settings.');
@@ -215,13 +221,13 @@ export default function StyleDiscovery() {
                     src={`${API_BASE}${option.preview_url}`}
                     style={{
                       width: '100%',
-                      height: 220,
+                      height: 180,
                       objectFit: 'cover',
                       display: 'block',
                     }}
                   />
                 ) : (
-                  <div style={{ height: 220, background: '#1a1a1a' }} />
+                  <div style={{ height: 180, background: '#1a1a1a' }} />
                 )}
                 <div
                   style={{
@@ -298,6 +304,43 @@ export default function StyleDiscovery() {
         </Text>
       </div>
 
+      {/* Saved profiles quick-select */}
+      {savedProfiles.length > 0 && completedCount === 0 && (
+        <div
+          style={{
+            marginBottom: 24,
+            padding: '16px',
+            background: 'rgba(91, 106, 191, 0.06)',
+            borderRadius: 12,
+            border: '1px solid rgba(91, 106, 191, 0.15)',
+          }}
+        >
+          <Text style={{ color: 'rgba(255,255,255,0.65)', fontSize: 13, display: 'block', marginBottom: 12 }}>
+            Or use a saved style profile to skip discovery:
+          </Text>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {savedProfiles.slice(0, 5).map((saved) => (
+              <Button
+                key={saved.profile.id}
+                size="small"
+                onClick={() => {
+                  loadSavedProfile(saved.profile);
+                  message.success(`Loaded profile: ${saved.name}`);
+                }}
+                style={{ borderRadius: 8 }}
+              >
+                {saved.name} <RightOutlined />
+              </Button>
+            ))}
+            {savedProfiles.length > 5 && (
+              <Text style={{ color: 'rgba(255,255,255,0.35)', fontSize: 12, alignSelf: 'center' }}>
+                +{savedProfiles.length - 5} more (see Profiles in header)
+              </Text>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Progress indicator */}
       <div
         style={{
@@ -357,6 +400,13 @@ export default function StyleDiscovery() {
           </Button>
         </div>
       )}
+
+      {/* Prompt editor */}
+      <PromptEditor
+        label="Edit style generation prompt"
+        loadTemplate={styleApi.getStyleOptionsPromptTemplate}
+        onChange={(p) => { customPromptRef.current = p; }}
+      />
 
       {/* Sample grid */}
       <Row gutter={[16, 16]}>

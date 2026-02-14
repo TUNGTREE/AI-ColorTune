@@ -29,10 +29,11 @@ export const styleApi = {
   getSamples: () =>
     api.get<SampleScene[]>('/api/style/samples').then((r) => r.data),
 
-  createRoundFromSample: (sessionId: string, sampleId: string) =>
+  createRoundFromSample: (sessionId: string, sampleId: string, customPrompt?: string) =>
     api
       .post<StyleRound>(`/api/style/sessions/${sessionId}/rounds/sample`, {
         sample_id: sampleId,
+        custom_prompt: customPrompt || null,
       })
       .then((r) => r.data),
 
@@ -44,9 +45,11 @@ export const styleApi = {
       .post<StyleOption>(`/api/style/rounds/${roundId}/select`, { option_id: optionId })
       .then((r) => r.data),
 
-  regenerateOptions: (roundId: string) =>
+  regenerateOptions: (roundId: string, customPrompt?: string) =>
     api
-      .post<StyleRound>(`/api/style/rounds/${roundId}/regenerate`)
+      .post<StyleRound>(`/api/style/rounds/${roundId}/regenerate`, {
+        custom_prompt: customPrompt || null,
+      })
       .then((r) => r.data),
 
   analyzeSession: (sessionId: string) =>
@@ -54,6 +57,20 @@ export const styleApi = {
 
   getProfile: (profileId: string) =>
     api.get<UserProfile>(`/api/style/profiles/${profileId}`).then((r) => r.data),
+
+  getStyleOptionsPromptTemplate: () =>
+    api
+      .get<{ template: string; variables: string[]; schema_value: string }>(
+        '/api/style/prompt-template/style-options',
+      )
+      .then((r) => r.data),
+
+  getGradingSuggestionsPromptTemplate: () =>
+    api
+      .get<{ template: string; variables: string[]; schema_value: string }>(
+        '/api/style/prompt-template/grading-suggestions',
+      )
+      .then((r) => r.data),
 };
 
 export const gradingApi = {
@@ -68,10 +85,11 @@ export const gradingApi = {
   getTask: (taskId: string) =>
     api.get<GradingTask>(`/api/grading/tasks/${taskId}`).then((r) => r.data),
 
-  generateSuggestions: (taskId: string, num = 3) =>
+  generateSuggestions: (taskId: string, num = 3, customPrompt?: string) =>
     api
       .post<GradingSuggestion[]>(`/api/grading/tasks/${taskId}/suggest`, {
         num_suggestions: num,
+        custom_prompt: customPrompt || null,
       })
       .then((r) => r.data),
 
@@ -80,10 +98,11 @@ export const gradingApi = {
       .get<GradingSuggestion[]>(`/api/grading/tasks/${taskId}/suggestions`)
       .then((r) => r.data),
 
-  regenerateSuggestions: (taskId: string, num = 3) =>
+  regenerateSuggestions: (taskId: string, num = 3, customPrompt?: string) =>
     api
       .post<GradingSuggestion[]>(`/api/grading/tasks/${taskId}/regenerate-suggestions`, {
         num_suggestions: num,
+        custom_prompt: customPrompt || null,
       })
       .then((r) => r.data),
 

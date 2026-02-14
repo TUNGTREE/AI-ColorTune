@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Layout, Typography, Steps, Button, Space, Popconfirm, theme } from 'antd';
-import { SettingOutlined, ArrowLeftOutlined, HomeOutlined } from '@ant-design/icons';
+import { SettingOutlined, ArrowLeftOutlined, HomeOutlined, UserOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import StyleDiscovery from './components/StyleDiscovery';
 import GradingSuggestionPanel from './components/GradingSuggestion';
 import FineTunePanel from './components/FineTune';
 import ExportPanel from './components/Export';
 import AISettingsModal from './components/common/AISettingsModal';
+import ProfileManager from './components/common/ProfileManager';
 import { useAppStore } from './stores/appStore';
 import './App.css';
 
@@ -25,6 +26,7 @@ const STEP_ITEMS = [
 function App() {
   const [backendStatus, setBackendStatus] = useState<string>('checking...');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profilesOpen, setProfilesOpen] = useState(false);
   const { currentStep, goBack, reset } = useAppStore();
   const { token } = theme.useToken();
 
@@ -100,6 +102,14 @@ function App() {
           </Popconfirm>
           <Button
             type="text"
+            icon={<UserOutlined />}
+            onClick={() => setProfilesOpen(true)}
+            style={{ color: 'rgba(255,255,255,0.65)' }}
+          >
+            Profiles
+          </Button>
+          <Button
+            type="text"
             icon={<SettingOutlined />}
             onClick={() => setSettingsOpen(true)}
             style={{ color: 'rgba(255,255,255,0.65)' }}
@@ -130,6 +140,7 @@ function App() {
       </Footer>
 
       <AISettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+      <ProfileManager open={profilesOpen} onClose={() => setProfilesOpen(false)} />
     </Layout>
   );
 }

@@ -75,14 +75,32 @@ class AIProvider(ABC):
         return json.loads(_extract_json(response))
 
     async def generate_style_options(
-        self, image_base64: str, scene_info: dict, num_styles: int = 4
+        self, image_base64: str, scene_info: dict, num_styles: int = 6,
+        custom_prompt: str | None = None,
+        avoid_styles: list[str] | None = None,
     ) -> list[dict]:
         """Generate multiple style options for a photo."""
-        prompt = STYLE_OPTIONS_PROMPT.format(
-            num_styles=num_styles,
-            scene_info=json.dumps(scene_info, indent=2),
-            schema=COLOR_PARAMS_SCHEMA_DESCRIPTION,
-        )
+        if custom_prompt:
+            prompt = custom_prompt
+        else:
+            # Build the avoid section
+            if avoid_styles:
+                avoid_section = (
+                    "## AVOID PREVIOUSLY GENERATED STYLES\n"
+                    "The following styles were already generated and the user wants NEW options. "
+                    "You MUST choose DIFFERENT archetypes and axis positions. "
+                    "Do NOT reuse any of these styles or produce visually similar results:\n"
+                    + "\n".join(f"- {name}" for name in avoid_styles)
+                    + "\n\nPick from the remaining archetypes in the library that were NOT used above."
+                )
+            else:
+                avoid_section = ""
+            prompt = STYLE_OPTIONS_PROMPT.format(
+                num_styles=num_styles,
+                scene_info=json.dumps(scene_info, indent=2),
+                schema=COLOR_PARAMS_SCHEMA_DESCRIPTION,
+                avoid_section=avoid_section,
+            )
         response = await self.analyze_image(image_base64, prompt)
         return json.loads(_extract_json(response))
 
@@ -97,14 +115,18 @@ class AIProvider(ABC):
         return json.loads(_extract_json(response))
 
     async def generate_grading_suggestions(
-        self, image_base64: str, user_profile: dict, num_suggestions: int = 3
+        self, image_base64: str, user_profile: dict, num_suggestions: int = 3,
+        custom_prompt: str | None = None
     ) -> list[dict]:
         """Generate personalized grading suggestions."""
-        prompt = GRADING_SUGGESTION_PROMPT.format(
-            num_suggestions=num_suggestions,
-            user_profile=json.dumps(user_profile, indent=2),
-            schema=COLOR_PARAMS_SCHEMA_DESCRIPTION,
-        )
+        if custom_prompt:
+            prompt = custom_prompt
+        else:
+            prompt = GRADING_SUGGESTION_PROMPT.format(
+                num_suggestions=num_suggestions,
+                user_profile=json.dumps(user_profile, indent=2),
+                schema=COLOR_PARAMS_SCHEMA_DESCRIPTION,
+            )
         response = await self.analyze_image(image_base64, prompt)
         return json.loads(_extract_json(response))
 

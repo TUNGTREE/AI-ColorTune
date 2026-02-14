@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import {
   Card,
   Upload,
@@ -11,9 +11,10 @@ import {
   theme,
 } from 'antd';
 import { UploadOutlined, CheckCircleFilled, ReloadOutlined } from '@ant-design/icons';
-import { gradingApi } from '../../api';
+import { gradingApi, styleApi } from '../../api';
 import { useAppStore } from '../../stores/appStore';
 import BeforeAfterSlider from './BeforeAfterSlider';
+import PromptEditor from '../common/PromptEditor';
 import type { GradingSuggestion } from '../../types';
 
 const { Title, Text, Paragraph } = Typography;
@@ -32,6 +33,7 @@ export default function GradingSuggestionPanel() {
   const [compareSuggestion, setCompareSuggestion] =
     useState<GradingSuggestion | null>(null);
   const [regenerating, setRegenerating] = useState(false);
+  const customPromptRef = useRef<string | null>(null);
 
   const userId = session?.user_id;
 
@@ -56,7 +58,7 @@ export default function GradingSuggestionPanel() {
 
         // Auto-generate suggestions
         setGenerating(true);
-        const sugs = await gradingApi.generateSuggestions(task.id);
+        const sugs = await gradingApi.generateSuggestions(task.id, 3, customPromptRef.current || undefined);
         setSuggestions(sugs);
         message.success(`Generated ${sugs.length} suggestions`);
       } catch {
@@ -99,7 +101,7 @@ export default function GradingSuggestionPanel() {
     setRegenerating(true);
     setCompareSuggestion(null);
     try {
-      const sugs = await gradingApi.regenerateSuggestions(taskId);
+      const sugs = await gradingApi.regenerateSuggestions(taskId, 3, customPromptRef.current || undefined);
       setSuggestions(sugs);
       message.success(`Generated ${sugs.length} new suggestions`);
     } catch {
@@ -134,6 +136,11 @@ export default function GradingSuggestionPanel() {
             Style profile loaded
           </Text>
         )}
+        <PromptEditor
+          label="Edit grading prompt"
+          loadTemplate={styleApi.getGradingSuggestionsPromptTemplate}
+          onChange={(p) => { customPromptRef.current = p; }}
+        />
         <Upload
           accept="image/*"
           showUploadList={false}
@@ -197,6 +204,15 @@ export default function GradingSuggestionPanel() {
           </Button>
         )}
       </div>
+
+      {/* Prompt editor for regeneration */}
+      {!hasSelection && (
+        <PromptEditor
+          label="Edit grading prompt"
+          loadTemplate={styleApi.getGradingSuggestionsPromptTemplate}
+          onChange={(p) => { customPromptRef.current = p; }}
+        />
+      )}
 
       {/* Before/After comparison */}
       {compareSuggestion && originalUrl && (

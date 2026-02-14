@@ -105,7 +105,7 @@ def adjust_contrast(img: np.ndarray, amount: float) -> np.ndarray:
     """Adjust contrast. amount in [-100, 100]."""
     if amount == 0:
         return img
-    factor = (amount + 100) / 100.0  # maps -100->0, 0->1, 100->2
+    factor = (amount + 100) / 100.0
     return _clamp(0.5 + factor * (img - 0.5))
 
 

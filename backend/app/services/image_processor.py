@@ -94,4 +94,4 @@ class ImageProcessor:
         result = image_ops.apply_vignette(result, e.vignette)
         result = image_ops.apply_grain(result, e.grain)
 
-        return result
+        return np.clip(result, 0.0, 1.0)

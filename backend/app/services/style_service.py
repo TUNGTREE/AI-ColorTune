@@ -88,7 +88,9 @@ class StyleService:
         )
 
     async def generate_options_for_round(
-        self, round_obj: StyleRound, num_styles: int = 4
+        self, round_obj: StyleRound, num_styles: int = 6,
+        custom_prompt: str | None = None,
+        avoid_styles: list[str] | None = None,
     ) -> list[StyleOption]:
         """Use AI to analyze the image and generate style options."""
         image_path = Path(round_obj.original_image_path)
@@ -113,7 +115,11 @@ class StyleService:
         round_obj.weather = round_obj.weather or scene_info.get("weather")
 
         # Step 2: Generate style options
-        style_data = await self.ai.generate_style_options(image_b64, scene_info, num_styles)
+        style_data = await self.ai.generate_style_options(
+            image_b64, scene_info, num_styles,
+            custom_prompt=custom_prompt,
+            avoid_styles=avoid_styles,
+        )
 
         # Step 3: Create preview images and save options
         options = []

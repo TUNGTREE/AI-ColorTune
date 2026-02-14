@@ -73,6 +73,7 @@ def list_samples():
 
 class SampleRoundRequest(BaseModel):
     sample_id: str
+    custom_prompt: str | None = None
 
 
 @router.post("/sessions/{session_id}/rounds/sample", response_model=StyleRoundResponse)
@@ -115,7 +116,7 @@ async def create_round_from_sample(
     try:
         ai = get_current_provider()
         svc.ai = ai
-        options = await svc.generate_options_for_round(round_obj)
+        options = await svc.generate_options_for_round(round_obj, custom_prompt=req.custom_prompt)
     except HTTPException:
         raise  # Re-raise HTTP errors (e.g. "API key not configured")
     except Exception as e:
@@ -213,24 +214,34 @@ def get_round_options(round_id: str, db: Session = Depends(get_db)):
     return [_option_to_response(o) for o in options]
 
 
+class RegenerateRequest(BaseModel):
+    custom_prompt: str | None = None
+
+
 @router.post("/rounds/{round_id}/regenerate", response_model=StyleRoundResponse)
-async def regenerate_options(round_id: str, db: Session = Depends(get_db)):
+async def regenerate_options(round_id: str, req: RegenerateRequest = RegenerateRequest(), db: Session = Depends(get_db)):
     """Delete existing options for a round and regenerate new ones."""
     svc = StyleService(db)
     round_obj = db.get(StyleRound, round_id)
     if round_obj is None:
         raise HTTPException(404, "Round not found")
 
-    # Delete old options
+    # Capture old style names before deleting so regeneration can avoid them
     from app.models.style import StyleOption as StyleOptionModel
+    old_options = db.query(StyleOptionModel).filter(StyleOptionModel.round_id == round_id).all()
+    avoid_styles = [o.style_name for o in old_options if o.style_name]
+
+    # Delete old options
     db.query(StyleOptionModel).filter(StyleOptionModel.round_id == round_id).delete()
     db.commit()
 
-    # Regenerate
+    # Regenerate with different archetypes
     try:
         ai = get_current_provider()
         svc.ai = ai
-        options = await svc.generate_options_for_round(round_obj)
+        options = await svc.generate_options_for_round(
+            round_obj, custom_prompt=req.custom_prompt, avoid_styles=avoid_styles,
+        )
     except HTTPException:
         raise
     except Exception as e:
@@ -248,6 +259,32 @@ def select_style(round_id: str, req: SelectStyleRequest, db: Session = Depends(g
     except ValueError as e:
         raise HTTPException(400, str(e))
     return _option_to_response(option)
+
+
+# ------------------------------------------------------------------
+# Prompt template endpoints
+# ------------------------------------------------------------------
+
+@router.get("/prompt-template/style-options")
+def get_style_options_prompt_template():
+    """Return the default style options prompt template for user editing."""
+    from app.core.prompts import STYLE_OPTIONS_PROMPT, COLOR_PARAMS_SCHEMA_DESCRIPTION
+    return {
+        "template": STYLE_OPTIONS_PROMPT,
+        "variables": ["num_styles", "scene_info", "schema"],
+        "schema_value": COLOR_PARAMS_SCHEMA_DESCRIPTION,
+    }
+
+
+@router.get("/prompt-template/grading-suggestions")
+def get_grading_suggestions_prompt_template():
+    """Return the default grading suggestions prompt template for user editing."""
+    from app.core.prompts import GRADING_SUGGESTION_PROMPT, COLOR_PARAMS_SCHEMA_DESCRIPTION
+    return {
+        "template": GRADING_SUGGESTION_PROMPT,
+        "variables": ["num_suggestions", "user_profile", "schema"],
+        "schema_value": COLOR_PARAMS_SCHEMA_DESCRIPTION,
+    }
 
 
 # ------------------------------------------------------------------

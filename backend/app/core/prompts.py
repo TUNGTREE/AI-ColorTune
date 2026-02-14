@@ -108,9 +108,9 @@ Scene analysis:
 
 ## MANDATORY: You MUST generate styles that differ across AT LEAST 2 of these 4 axes. No two styles should share the same position on more than 2 axes.
 
-## ARCHETYPE GUIDE — Use these as starting templates, then adapt to fit the scene:
+## ARCHETYPE LIBRARY — 16 reference styles. Select the {num_styles} most appropriate for THIS specific scene (see scene-adaptive rules below), then customize parameters to work WITH the image's existing palette.
 
-1. **Clean & Natural** — Faithful colors, balanced exposure, minimal processing. Slight clarity boost. Like a well-exposed DSLR shot. (Neutral temp, balanced tone, moderate chroma, no split tone)
+1. **Clean & Natural** — Faithful colors, balanced exposure, minimal processing, slight clarity boost. Like a well-exposed DSLR shot. (Neutral temp, balanced tone, moderate chroma, no split tone)
 
 2. **Warm Cinematic** — Warm highlights with teal/blue shadows. Classic orange-teal cinema look. Slightly lifted blacks, gentle S-curve. (Warm temp, balanced-to-deep tone, selective chroma, complementary split)
 
@@ -120,9 +120,44 @@ Scene analysis:
 
 5. **Moody Film** — Faded blacks (lift shadow end of tone curve), slight desaturation, warm tint. Analog film nostalgia. (Warm temp, deep tone, muted chroma, warm analogous split)
 
-6. **High Contrast B&W-adjacent** — Strong contrast, reduced saturation, dramatic shadows. Not fully B&W but a desaturated, editorial look. (Neutral-cool temp, deep tone, very muted chroma, monochromatic)
+6. **High Contrast Editorial** — Strong contrast, reduced saturation, dramatic shadows. Desaturated editorial look. (Neutral-cool temp, deep tone, very muted chroma, monochromatic)
 
-Select {num_styles} archetypes from above that best suit this specific scene, then customize their parameters to work WITH the image's existing colors. Do NOT use archetypes that would fight the scene (e.g., don't use "Warm Cinematic" on a night scene that is naturally cold/blue — instead adapt the warm elements to complement the existing palette).
+7. **Golden Hour Glow** — Golden-amber warmth, soft highlights, slight orange push in HSL, gentle vignette. Emulates magic-hour light. (Very warm temp, bright tone, selective warm chroma, warm analogous split)
+
+8. **Nordic Minimal** — Very clean, slightly cool, low saturation, high clarity, lifted midtones. Scandinavian design aesthetic. (Cool-neutral temp, bright tone, muted chroma, no split tone)
+
+9. **Vintage Faded** — Lifted blacks via tone curve, cross-process color shift (green shadows, magenta highlights), low contrast. 70s retro palette. (Warm-neutral temp, balanced tone, muted chroma, cross-process split)
+
+10. **Teal & Orange Cinema** — Pronounced complementary orange-teal split. Stronger than Warm Cinematic, with HSL pushing orange/teal separation. Blockbuster movie look. (Warm temp, balanced tone, selective chroma, strong complementary split)
+
+11. **Soft Pastel** — Lifted shadows, gentle desaturation, slight pink/lavender tint via split toning. Dreamy, light-hearted. (Neutral-warm temp, very bright tone, muted chroma, pastel analogous split)
+
+12. **Dramatic Low-Key** — Very dark, rich shadows, minimal highlight recovery, negative exposure. Selective highlights create drama. (Neutral temp, very deep tone, selective chroma, monochromatic)
+
+13. **Autumn Warm** — Rich warm oranges/reds boosted via HSL (orange +sat, yellow +sat, green shifted toward yellow). Earthy, cozy tones. (Warm temp, balanced tone, vivid warm chroma, warm analogous split)
+
+14. **Neon Urban** — Cool shadows with vibrant saturated highlights, high clarity, punchy colors. Urban night/street energy. (Cool temp, deep tone, vivid chroma, cool complementary split)
+
+15. **Bleach Bypass** — Desaturated with high contrast, silver/metallic feel. Mimics bleach bypass film process. Strong S-curve with low saturation. (Neutral-cool temp, deep tone, very muted chroma, monochromatic)
+
+16. **Luminous Soft-Light** — Bright, airy, gently blown highlights, warm pastel shadows, low contrast. Soft natural light feeling. (Neutral-warm temp, very bright tone, moderate chroma, warm analogous split)
+
+## SCENE-ADAPTIVE ARCHETYPE SELECTION — Choose archetypes that COMPLEMENT the scene:
+
+- **Landscape / Nature / Ocean / Lake**: Prioritize Clean & Natural, Rich & Vivid, Cool & Ethereal, Golden Hour Glow, Moody Film, Nordic Minimal, Dramatic Low-Key, Luminous Soft-Light
+- **Portrait / People**: Prioritize Clean & Natural, Warm Cinematic, Soft Pastel, Golden Hour Glow, High Contrast Editorial, Luminous Soft-Light, Moody Film, Cool & Ethereal
+- **Street / Urban / Architecture**: Prioritize Warm Cinematic, High Contrast Editorial, Neon Urban, Bleach Bypass, Teal & Orange Cinema, Moody Film, Vintage Faded, Rich & Vivid
+- **Night / Blue Hour / City Lights**: Prioritize Neon Urban, Teal & Orange Cinema, Dramatic Low-Key, Cool & Ethereal, Moody Film, Bleach Bypass, High Contrast Editorial, Warm Cinematic
+- **Golden Hour / Sunset / Sunrise**: Prioritize Golden Hour Glow, Warm Cinematic, Autumn Warm, Rich & Vivid, Soft Pastel, Moody Film, Teal & Orange Cinema, Luminous Soft-Light
+- **Indoor / Food / Still Life**: Prioritize Clean & Natural, Warm Cinematic, Rich & Vivid, Soft Pastel, Luminous Soft-Light, Nordic Minimal, Vintage Faded, Golden Hour Glow
+- **Forest / Mountain / Valley**: Prioritize Moody Film, Rich & Vivid, Cool & Ethereal, Nordic Minimal, Autumn Warm, Dramatic Low-Key, Clean & Natural, Bleach Bypass
+- **Snow / Winter / Fog**: Prioritize Nordic Minimal, Cool & Ethereal, Bleach Bypass, Soft Pastel, Luminous Soft-Light, Clean & Natural, Dramatic Low-Key, High Contrast Editorial
+- **Desert / Arid**: Prioritize Golden Hour Glow, Autumn Warm, Warm Cinematic, Bleach Bypass, Rich & Vivid, High Contrast Editorial, Dramatic Low-Key, Vintage Faded
+- **Beach / Tropical**: Prioritize Rich & Vivid, Clean & Natural, Teal & Orange Cinema, Golden Hour Glow, Cool & Ethereal, Soft Pastel, Luminous Soft-Light, Warm Cinematic
+
+Use the scene analysis to match the scene to the closest category above, then select {num_styles} archetypes from the recommended list. Do NOT use archetypes that would fight the scene's natural palette — instead adapt their core character to complement it.
+
+{avoid_section}
 
 ## PARAMETER GUIDELINES (professional ranges):
 - exposure: -0.8 to +0.8 EV (use the FULL range to create visible differences between styles)
