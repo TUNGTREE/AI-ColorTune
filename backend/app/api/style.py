@@ -18,6 +18,7 @@ from app.schemas.style import (
 )
 from app.services.style_service import StyleService
 from app.services.sample_scenes import get_sample_list, get_sample_image_path
+from app.models.style import StyleRound
 from app.api.ai_config import get_current_provider
 
 import uuid
@@ -210,6 +211,33 @@ def get_round_options(round_id: str, db: Session = Depends(get_db)):
     svc = StyleService(db)
     options = svc.get_round_options(round_id)
     return [_option_to_response(o) for o in options]
+
+
+@router.post("/rounds/{round_id}/regenerate", response_model=StyleRoundResponse)
+async def regenerate_options(round_id: str, db: Session = Depends(get_db)):
+    """Delete existing options for a round and regenerate new ones."""
+    svc = StyleService(db)
+    round_obj = db.get(StyleRound, round_id)
+    if round_obj is None:
+        raise HTTPException(404, "Round not found")
+
+    # Delete old options
+    from app.models.style import StyleOption as StyleOptionModel
+    db.query(StyleOptionModel).filter(StyleOptionModel.round_id == round_id).delete()
+    db.commit()
+
+    # Regenerate
+    try:
+        ai = get_current_provider()
+        svc.ai = ai
+        options = await svc.generate_options_for_round(round_obj)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.exception("AI style regeneration failed for round %s", round_id)
+        raise HTTPException(502, f"AI service error: {e}")
+
+    return _round_to_response(round_obj, options)
 
 
 @router.post("/rounds/{round_id}/select", response_model=StyleOptionResponse)

@@ -44,6 +44,11 @@ export const styleApi = {
       .post<StyleOption>(`/api/style/rounds/${roundId}/select`, { option_id: optionId })
       .then((r) => r.data),
 
+  regenerateOptions: (roundId: string) =>
+    api
+      .post<StyleRound>(`/api/style/rounds/${roundId}/regenerate`)
+      .then((r) => r.data),
+
   analyzeSession: (sessionId: string) =>
     api.post<UserProfile>(`/api/style/sessions/${sessionId}/analyze`).then((r) => r.data),
 
@@ -73,6 +78,13 @@ export const gradingApi = {
   getSuggestions: (taskId: string) =>
     api
       .get<GradingSuggestion[]>(`/api/grading/tasks/${taskId}/suggestions`)
+      .then((r) => r.data),
+
+  regenerateSuggestions: (taskId: string, num = 3) =>
+    api
+      .post<GradingSuggestion[]>(`/api/grading/tasks/${taskId}/regenerate-suggestions`, {
+        num_suggestions: num,
+      })
       .then((r) => r.data),
 
   selectSuggestion: (suggestionId: string) =>

@@ -10,7 +10,7 @@ import {
   message,
   theme,
 } from 'antd';
-import { UploadOutlined, CheckCircleFilled } from '@ant-design/icons';
+import { UploadOutlined, CheckCircleFilled, ReloadOutlined } from '@ant-design/icons';
 import { gradingApi } from '../../api';
 import { useAppStore } from '../../stores/appStore';
 import BeforeAfterSlider from './BeforeAfterSlider';
@@ -31,6 +31,7 @@ export default function GradingSuggestionPanel() {
   const [generating, setGenerating] = useState(false);
   const [compareSuggestion, setCompareSuggestion] =
     useState<GradingSuggestion | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
 
   const userId = session?.user_id;
 
@@ -92,6 +93,22 @@ export default function GradingSuggestionPanel() {
     setStep(2);
   }, [setStep]);
 
+  // Regenerate suggestions
+  const handleRegenerate = useCallback(async () => {
+    if (!taskId) return;
+    setRegenerating(true);
+    setCompareSuggestion(null);
+    try {
+      const sugs = await gradingApi.regenerateSuggestions(taskId);
+      setSuggestions(sugs);
+      message.success(`Generated ${sugs.length} new suggestions`);
+    } catch {
+      message.error('Failed to regenerate suggestions');
+    } finally {
+      setRegenerating(false);
+    }
+  }, [taskId]);
+
   const hasSelection = suggestions.some((s) => s.is_selected);
 
   // --- No task yet: show upload prompt ---
@@ -140,7 +157,7 @@ export default function GradingSuggestionPanel() {
   }
 
   // --- Generating suggestions ---
-  if (generating) {
+  if (generating || regenerating) {
     return (
       <div
         style={{
@@ -154,7 +171,9 @@ export default function GradingSuggestionPanel() {
       >
         <Spin size="large" />
         <Text style={{ color: 'rgba(255,255,255,0.45)' }}>
-          Analyzing your photo and generating personalized suggestions...
+          {regenerating
+            ? 'Regenerating suggestions with new variations...'
+            : 'Analyzing your photo and generating personalized suggestions...'}
         </Text>
       </div>
     );
@@ -163,9 +182,21 @@ export default function GradingSuggestionPanel() {
   // --- Show suggestions ---
   return (
     <div style={{ width: '100%', padding: '16px 0' }}>
-      <Title level={3} style={{ textAlign: 'center', marginBottom: 24 }}>
-        Choose a Grading Style
-      </Title>
+      <div style={{ textAlign: 'center', marginBottom: 24 }}>
+        <Title level={3} style={{ marginBottom: 8 }}>
+          Choose a Grading Style
+        </Title>
+        {!hasSelection && (
+          <Button
+            icon={<ReloadOutlined />}
+            onClick={handleRegenerate}
+            type="text"
+            style={{ color: 'rgba(255,255,255,0.45)' }}
+          >
+            Not satisfied? Regenerate suggestions
+          </Button>
+        )}
+      </div>
 
       {/* Before/After comparison */}
       {compareSuggestion && originalUrl && (

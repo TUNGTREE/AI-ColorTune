@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { Row, Col, Typography, Spin, Button, message, Progress, theme } from 'antd';
-import { CheckCircleFilled, ThunderboltOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { CheckCircleFilled, ThunderboltOutlined, ArrowLeftOutlined, ReloadOutlined } from '@ant-design/icons';
 import { styleApi } from '../../api';
 import { useAppStore } from '../../stores/appStore';
 import type { SampleScene, StyleRound, StyleOption } from '../../types';
@@ -25,6 +25,7 @@ export default function StyleDiscovery() {
   const [currentSampleId, setCurrentSampleId] = useState<string | null>(null);
   const [rounds, setRounds] = useState<StyleRound[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
+  const [regenerating, setRegenerating] = useState(false);
 
   // Fetch samples on mount
   useEffect(() => {
@@ -117,6 +118,25 @@ export default function StyleDiscovery() {
     },
     [currentRound, currentSampleId],
   );
+
+  // Regenerate style options for current round
+  const handleRegenerate = useCallback(async () => {
+    if (!currentRound) return;
+    setRegenerating(true);
+    try {
+      const newRound = await styleApi.regenerateOptions(currentRound.id);
+      setCurrentRound(newRound);
+      if (!newRound.options || newRound.options.length === 0) {
+        message.warning('No style options generated. Try again or check AI settings.');
+      } else {
+        message.success('New style options generated!');
+      }
+    } catch {
+      message.error('Failed to regenerate options');
+    } finally {
+      setRegenerating(false);
+    }
+  }, [currentRound]);
 
   // Analyze preferences
   const handleAnalyze = useCallback(async () => {
@@ -232,7 +252,7 @@ export default function StyleDiscovery() {
           ))}
         </Row>
 
-        <div style={{ textAlign: 'center', marginTop: 24 }}>
+        <div style={{ textAlign: 'center', marginTop: 24, display: 'flex', justifyContent: 'center', gap: 16 }}>
           <Button
             onClick={() => {
               setPhase('samples');
@@ -245,6 +265,17 @@ export default function StyleDiscovery() {
           >
             Back to samples
           </Button>
+          {!hasSelection && (
+            <Button
+              onClick={handleRegenerate}
+              icon={<ReloadOutlined />}
+              loading={regenerating}
+              type="text"
+              style={{ color: 'rgba(255,255,255,0.45)' }}
+            >
+              Regenerate options
+            </Button>
+          )}
         </div>
       </div>
     );

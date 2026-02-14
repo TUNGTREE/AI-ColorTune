@@ -126,6 +126,38 @@ def get_suggestions(task_id: str, db: Session = Depends(get_db)):
     return [_suggestion_response(s) for s in suggestions]
 
 
+@router.post("/tasks/{task_id}/regenerate-suggestions", response_model=list[SuggestionResponse])
+async def regenerate_suggestions(
+    task_id: str,
+    req: SuggestRequest = SuggestRequest(),
+    db: Session = Depends(get_db),
+):
+    """Delete existing suggestions and generate new ones."""
+    try:
+        provider = get_current_provider()
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(400, f"AI provider not available: {e}")
+
+    svc = GradingService(db, provider)
+    task = svc.get_task(task_id)
+    if task is None:
+        raise HTTPException(404, "Task not found")
+
+    # Delete old suggestions
+    from app.models.grading import GradingSuggestion as GradingSuggestionModel
+    db.query(GradingSuggestionModel).filter(GradingSuggestionModel.task_id == task_id).delete()
+    db.commit()
+
+    try:
+        suggestions = await svc.generate_suggestions(task, req.num_suggestions)
+    except Exception as e:
+        logger.exception("Failed to regenerate suggestions for task %s", task_id)
+        raise HTTPException(502, f"AI service error: {e}")
+    return [_suggestion_response(s) for s in suggestions]
+
+
 @router.post("/suggestions/{suggestion_id}/select", response_model=SuggestionResponse)
 def select_suggestion(
     suggestion_id: str,
