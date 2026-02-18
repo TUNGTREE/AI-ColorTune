@@ -50,21 +50,6 @@ export interface ColorParams {
   };
 }
 
-export interface SelectionRegion {
-  type: 'rect' | 'ellipse';
-  x: number;      // 0-1 normalized
-  y: number;      // 0-1 normalized
-  width: number;   // 0-1 normalized
-  height: number;  // 0-1 normalized
-  feather: number; // 0-100
-}
-
-export interface LocalAdjustment {
-  id: string;
-  region: SelectionRegion;
-  parameters: Partial<ColorParams>;
-}
-
 export interface StyleOption {
   id: string;
   style_name: string;

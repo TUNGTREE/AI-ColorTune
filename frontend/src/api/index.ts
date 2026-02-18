@@ -114,12 +114,10 @@ export const gradingApi = {
   preview: (
     taskId: string,
     parameters: Record<string, unknown>,
-    localAdjustments?: Array<{ region: Record<string, unknown>; parameters: Record<string, unknown> }>,
   ) =>
     api
       .post<{ preview_url: string }>(`/api/grading/tasks/${taskId}/preview`, {
         parameters,
-        local_adjustments: localAdjustments || [],
       })
       .then((r) => r.data),
 
@@ -128,7 +126,6 @@ export const gradingApi = {
     parameters: Record<string, unknown>,
     format = 'jpeg',
     quality = 95,
-    localAdjustments?: Array<{ region: Record<string, unknown>; parameters: Record<string, unknown> }>,
   ) =>
     api
       .post<{
@@ -141,7 +138,6 @@ export const gradingApi = {
         parameters,
         format,
         quality,
-        local_adjustments: localAdjustments || [],
       })
       .then((r) => r.data),
 
