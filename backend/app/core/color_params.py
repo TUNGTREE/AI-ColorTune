@@ -54,6 +54,7 @@ class SplitToneChannel(BaseModel):
 
 class SplitToningParams(BaseModel):
     highlights: SplitToneChannel = Field(default_factory=SplitToneChannel)
+    midtones: SplitToneChannel = Field(default_factory=SplitToneChannel)
     shadows: SplitToneChannel = Field(default_factory=SplitToneChannel)
     balance: float = Field(0, ge=-100, le=100)
 
@@ -63,6 +64,10 @@ class EffectsParams(BaseModel):
     dehaze: float = Field(0, ge=-100, le=100)
     vignette: float = Field(0, ge=-100, le=100)
     grain: float = Field(0, ge=0, le=100)
+    texture: float = Field(0, ge=-100, le=100, description="Fine detail enhancement")
+    fade: float = Field(0, ge=0, le=100, description="Lift black point for faded look")
+    sharpening: float = Field(0, ge=0, le=100, description="Sharpening amount")
+    sharpen_radius: float = Field(1.0, ge=0.5, le=5.0, description="Sharpening radius")
 
 
 class ColorParams(BaseModel):
@@ -100,6 +105,10 @@ _CLAMP_RULES: dict[str, tuple[float, float]] = {
     "effects.dehaze": (-100, 100),
     "effects.vignette": (-100, 100),
     "effects.grain": (0, 100),
+    "effects.texture": (-100, 100),
+    "effects.fade": (0, 100),
+    "effects.sharpening": (0, 100),
+    "effects.sharpen_radius": (0.5, 5.0),
     "split_toning.balance": (-100, 100),
 }
 
@@ -152,7 +161,7 @@ def sanitize_ai_params(raw: dict) -> dict:
     # Split toning channels: hue [0, 360], saturation [0, 100]
     st = raw.get("split_toning")
     if isinstance(st, dict):
-        for key in ("highlights", "shadows"):
+        for key in ("highlights", "midtones", "shadows"):
             ch = st.get(key)
             if isinstance(ch, dict):
                 if "hue" in ch:

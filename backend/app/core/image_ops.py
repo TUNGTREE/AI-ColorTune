@@ -437,3 +437,82 @@ def apply_grain(img: np.ndarray, amount: float) -> np.ndarray:
     strength = min(amount / 100.0, 0.05) * 0.1
     noise = np.random.normal(0, strength, img.shape).astype(np.float32)
     return _clamp(img + noise)
+
+
+def adjust_texture(img: np.ndarray, amount: float) -> np.ndarray:
+    """Enhance fine surface detail (texture). Similar to clarity but at a finer scale."""
+    if amount == 0:
+        return img
+    strength = amount / 100.0
+    img_u8 = (img * 255).astype(np.uint8)
+    gray = cv2.cvtColor(img_u8, cv2.COLOR_RGB2GRAY)
+    # Smaller blur radius than clarity for finer detail
+    blurred = cv2.GaussianBlur(gray, (0, 0), sigmaX=5)
+    high_pass = gray.astype(np.float32) - blurred.astype(np.float32)
+    high_pass = high_pass / 255.0
+    result = img + strength * 0.25 * high_pass[..., np.newaxis]
+    return _clamp(result)
+
+
+def apply_fade(img: np.ndarray, amount: float) -> np.ndarray:
+    """Lift black point to create a faded/film look. amount in [0, 100]."""
+    if amount == 0:
+        return img
+    # Lift the black point proportionally
+    lift = amount / 100.0 * 0.15  # Max 15% lift
+    return _clamp(img * (1.0 - lift) + lift)
+
+
+def apply_sharpening(img: np.ndarray, amount: float, radius: float = 1.0) -> np.ndarray:
+    """Sharpen image using unsharp mask. amount in [0, 100], radius in [0.5, 5.0]."""
+    if amount == 0:
+        return img
+    strength = amount / 100.0
+    img_u8 = (img * 255).astype(np.uint8)
+    blurred = cv2.GaussianBlur(img_u8, (0, 0), sigmaX=radius)
+    # Unsharp mask: original + strength * (original - blurred)
+    sharpened = img + strength * (img - blurred.astype(np.float32) / 255.0)
+    return _clamp(sharpened)
+
+
+def apply_split_toning_3way(img: np.ndarray,
+                            highlights_hue: float, highlights_sat: float,
+                            midtones_hue: float, midtones_sat: float,
+                            shadows_hue: float, shadows_sat: float,
+                            balance: float) -> np.ndarray:
+    """Apply 3-way color grading - tint highlights, midtones, and shadows independently."""
+    if highlights_sat == 0 and midtones_sat == 0 and shadows_sat == 0:
+        return img
+
+    luminance = 0.2126 * img[..., 0] + 0.7152 * img[..., 1] + 0.0722 * img[..., 2]
+    midpoint = 0.5 + balance / 200.0
+    result = img.copy()
+
+    for hue, sat, region in [
+        (highlights_hue, highlights_sat, 'highlights'),
+        (midtones_hue, midtones_sat, 'midtones'),
+        (shadows_hue, shadows_sat, 'shadows'),
+    ]:
+        if sat == 0:
+            continue
+        h_rad = np.deg2rad(hue)
+        tint_r = 0.5 + 0.5 * np.cos(h_rad)
+        tint_g = 0.5 + 0.5 * np.cos(h_rad - 2.094)
+        tint_b = 0.5 + 0.5 * np.cos(h_rad + 2.094)
+
+        strength = sat / 100.0 * 0.3
+
+        if region == 'highlights':
+            weight = np.clip((luminance - midpoint) / (1.0 - midpoint + 1e-10), 0, 1)
+        elif region == 'shadows':
+            weight = np.clip((midpoint - luminance) / (midpoint + 1e-10), 0, 1)
+        else:  # midtones
+            # Bell curve centered at midpoint
+            dist = np.abs(luminance - midpoint)
+            weight = np.clip(1.0 - dist * 3.0, 0, 1)
+
+        weight = weight[..., np.newaxis]
+        tint = np.array([tint_r, tint_g, tint_b], dtype=np.float32)
+        result = result + strength * weight * (tint - 0.5)
+
+    return _clamp(result)

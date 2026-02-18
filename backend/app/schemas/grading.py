@@ -1,7 +1,7 @@
 """Pydantic schemas for grading API."""
 from datetime import datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.core.color_params import ColorParams
 
@@ -20,12 +20,28 @@ class SelectSuggestionRequest(BaseModel):
     suggestion_id: str
 
 
+class SelectionRegion(BaseModel):
+    type: str = Field(..., pattern=r"^(rect|ellipse)$")
+    x: float = Field(..., ge=0, le=1)
+    y: float = Field(..., ge=0, le=1)
+    width: float = Field(..., ge=0, le=1)
+    height: float = Field(..., ge=0, le=1)
+    feather: float = Field(20, ge=0, le=100)
+
+
+class LocalAdjustmentRequest(BaseModel):
+    region: SelectionRegion
+    parameters: dict
+
+
 class PreviewRequest(BaseModel):
     parameters: ColorParams
+    local_adjustments: list[LocalAdjustmentRequest] = Field(default_factory=list)
 
 
 class ExportRequest(BaseModel):
     parameters: ColorParams
+    local_adjustments: list[LocalAdjustmentRequest] = Field(default_factory=list)
     format: str = "jpeg"
     quality: int = 95
 

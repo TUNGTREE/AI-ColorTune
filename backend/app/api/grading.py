@@ -187,7 +187,8 @@ def preview(task_id: str, req: PreviewRequest, db: Session = Depends(get_db)):
     task = svc.get_task(task_id)
     if task is None:
         raise HTTPException(404, "Task not found")
-    preview_url = svc.generate_preview(task, req.parameters)
+    local_adj = [a.model_dump() for a in req.local_adjustments] if req.local_adjustments else None
+    preview_url = svc.generate_preview(task, req.parameters, local_adjustments=local_adj)
     return {"preview_url": preview_url}
 
 
@@ -201,7 +202,8 @@ def export_image(task_id: str, req: ExportRequest, db: Session = Depends(get_db)
     task = svc.get_task(task_id)
     if task is None:
         raise HTTPException(404, "Task not found")
-    export = svc.export_image(task, req.parameters, req.format, req.quality)
+    export = svc.export_image(task, req.parameters, req.format, req.quality,
+                              local_adjustments=[a.model_dump() for a in req.local_adjustments] if req.local_adjustments else None)
     output_url = f"/exports/{Path(export.output_image_path).name}"
     return ExportResponse(
         id=export.id,

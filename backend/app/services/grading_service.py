@@ -128,12 +128,18 @@ class GradingService:
     # Preview
     # ------------------------------------------------------------------
 
-    def generate_preview(self, task: GradingTask, params: ColorParams) -> str:
+    def generate_preview(self, task: GradingTask, params: ColorParams,
+                         local_adjustments: list[dict] | None = None) -> str:
         """Generate a preview image with custom parameters. Returns preview URL path."""
         image_path = Path(task.original_image_path)
         img = self.processor.load_image(image_path)
         preview = self.processor.generate_preview(img)
         graded = self.processor.apply_params(preview, params)
+
+        # Apply local adjustments if any
+        if local_adjustments:
+            graded = self.processor.apply_local_adjustments(preview, graded, local_adjustments)
+
         preview_id = str(uuid.uuid4())
         preview_path = settings.PREVIEW_DIR / f"{preview_id}.jpg"
         self.processor.save_image(graded, preview_path, fmt="JPEG")
@@ -144,12 +150,17 @@ class GradingService:
     # ------------------------------------------------------------------
 
     def export_image(
-        self, task: GradingTask, params: ColorParams, fmt: str = "jpeg", quality: int = 95
+        self, task: GradingTask, params: ColorParams, fmt: str = "jpeg", quality: int = 95,
+        local_adjustments: list[dict] | None = None,
     ) -> Export:
         """Apply params at full resolution and export."""
         image_path = Path(task.original_image_path)
         img = self.processor.load_image(image_path)
         graded = self.processor.apply_params(img, params)
+
+        # Apply local adjustments if any
+        if local_adjustments:
+            graded = self.processor.apply_local_adjustments(img, graded, local_adjustments)
 
         export_id = str(uuid.uuid4())
         ext = {"jpeg": "jpg", "png": "png", "tiff": "tif"}.get(fmt.lower(), "jpg")

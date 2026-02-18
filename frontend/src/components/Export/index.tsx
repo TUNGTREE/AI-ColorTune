@@ -26,7 +26,7 @@ const FORMAT_OPTIONS = [
 ];
 
 export default function ExportPanel() {
-  const { gradingTask, finalParams, selectedSuggestion } = useAppStore();
+  const { gradingTask, finalParams, selectedSuggestion, localAdjustments } = useAppStore();
   const [format, setFormat] = useState<string>('jpeg');
   const [quality, setQuality] = useState<number>(95);
   const [exporting, setExporting] = useState(false);
@@ -41,11 +41,18 @@ export default function ExportPanel() {
     if (!gradingTask || !params) return;
     setExporting(true);
     try {
+      const localAdj = localAdjustments.length > 0
+        ? localAdjustments.map((a) => ({
+            region: a.region as unknown as Record<string, unknown>,
+            parameters: a.parameters as unknown as Record<string, unknown>,
+          }))
+        : undefined;
       const result = await gradingApi.exportImage(
         gradingTask.id,
         params as unknown as Record<string, unknown>,
         format,
         quality,
+        localAdj,
       );
       setExportResult({ id: result.id, output_url: result.output_url });
       message.success('Export completed!');
@@ -54,7 +61,7 @@ export default function ExportPanel() {
     } finally {
       setExporting(false);
     }
-  }, [gradingTask, params, format, quality]);
+  }, [gradingTask, params, format, quality, localAdjustments]);
 
   const handleDownload = useCallback(() => {
     if (!exportResult) return;

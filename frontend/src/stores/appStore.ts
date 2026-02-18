@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { StyleSession, UserProfile, GradingTask, GradingSuggestion, ColorParams } from '../types';
+import type { StyleSession, UserProfile, GradingTask, GradingSuggestion, ColorParams, LocalAdjustment } from '../types';
 import { saveProfile as saveProfileToStorage } from '../utils/profileStorage';
 
 interface AppState {
@@ -14,13 +14,15 @@ interface AppState {
   selectedSuggestion: GradingSuggestion | null;
   // Fine-tuned params carried to export
   finalParams: ColorParams | null;
+  // Local adjustments carried to export
+  localAdjustments: LocalAdjustment[];
 
   setSession: (s: StyleSession | null) => void;
   setProfile: (p: UserProfile | null) => void;
   setStep: (step: number) => void;
   setGradingTask: (t: GradingTask | null) => void;
   setSelectedSuggestion: (s: GradingSuggestion | null) => void;
-  setFinalParams: (p: ColorParams | null) => void;
+  setFinalParams: (p: ColorParams | null, localAdj?: LocalAdjustment[]) => void;
   /** Load a saved profile and jump to grading suggestions step */
   loadSavedProfile: (p: UserProfile) => void;
   goBack: () => void;
@@ -34,6 +36,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   gradingTask: null,
   selectedSuggestion: null,
   finalParams: null,
+  localAdjustments: [],
 
   setSession: (session) => set({ session }),
   setProfile: (profile) => {
@@ -45,7 +48,10 @@ export const useAppStore = create<AppState>((set, get) => ({
   setStep: (currentStep) => set({ currentStep }),
   setGradingTask: (gradingTask) => set({ gradingTask }),
   setSelectedSuggestion: (selectedSuggestion) => set({ selectedSuggestion }),
-  setFinalParams: (finalParams) => set({ finalParams }),
+  setFinalParams: (finalParams, localAdj) => set({
+    finalParams,
+    localAdjustments: localAdj || [],
+  }),
 
   loadSavedProfile: (profile) => {
     set({
@@ -55,6 +61,7 @@ export const useAppStore = create<AppState>((set, get) => ({
       gradingTask: null,
       selectedSuggestion: null,
       finalParams: null,
+      localAdjustments: [],
     });
   },
 
@@ -73,5 +80,6 @@ export const useAppStore = create<AppState>((set, get) => ({
       gradingTask: null,
       selectedSuggestion: null,
       finalParams: null,
+      localAdjustments: [],
     }),
 }));
