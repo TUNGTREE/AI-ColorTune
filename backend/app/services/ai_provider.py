@@ -20,8 +20,61 @@ from app.core.prompts import (
 logger = logging.getLogger(__name__)
 
 
-def _extract_json(text: str) -> str:
+def _repair_truncated_json(text: str) -> str:
+    """Attempt to repair truncated JSON arrays by keeping only complete objects.
+
+    When max_tokens is hit, the model output is cut mid-JSON. This function
+    finds the last complete top-level object in an array and closes the array.
+    """
+    text = text.strip()
+    if not text.startswith("["):
+        return text
+
+    # Find positions of all top-level complete objects by tracking brace depth
+    depth = 0
+    in_string = False
+    escape_next = False
+    last_complete_end = -1
+
+    for i, ch in enumerate(text):
+        if escape_next:
+            escape_next = False
+            continue
+        if ch == "\\":
+            if in_string:
+                escape_next = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+
+        if ch == "{":
+            depth += 1
+        elif ch == "}":
+            depth -= 1
+            if depth == 0:
+                last_complete_end = i
+
+    if last_complete_end > 0:
+        repaired = text[:last_complete_end + 1].rstrip().rstrip(",") + "\n]"
+        try:
+            json.loads(repaired)
+            logger.warning(
+                "Repaired truncated JSON array (kept up to char %d of %d)",
+                last_complete_end + 1, len(text),
+            )
+            return repaired
+        except json.JSONDecodeError:
+            pass
+    return text
+
+
+def _extract_json(text: str | None) -> str:
     """Extract JSON from AI response that may contain markdown fences or preamble."""
+    if not text:
+        return ""
     text = text.strip()
     # Remove markdown code fences
     text = re.sub(r'^```(?:json)?\s*', '', text)
@@ -50,6 +103,12 @@ def _extract_json(text: str) -> str:
 
     if candidates:
         return max(candidates, key=len)
+
+    # Last resort: try to repair truncated JSON (e.g. from max_tokens cutoff)
+    repaired = _repair_truncated_json(text)
+    if repaired != text:
+        return repaired
+
     return text
 
 
@@ -72,7 +131,7 @@ class AIProvider(ABC):
     async def analyze_scene(self, image_base64: str) -> dict:
         """Analyze scene of a photograph."""
         response = await self.analyze_image(image_base64, SCENE_ANALYSIS_PROMPT)
-        return json.loads(_extract_json(response))
+        return self._parse_json_response(response, "scene analysis")
 
     async def generate_style_options(
         self, image_base64: str, scene_info: dict, num_styles: int = 6,
@@ -102,7 +161,7 @@ class AIProvider(ABC):
                 avoid_section=avoid_section,
             )
         response = await self.analyze_image(image_base64, prompt)
-        return json.loads(_extract_json(response))
+        return self._parse_json_response(response, "style options")
 
     async def analyze_preferences(self, selections: list[dict]) -> dict:
         """Analyze user's style preferences from their selections."""
@@ -112,7 +171,7 @@ class AIProvider(ABC):
         )
         # This is text-only, no image needed — use a simple text call
         response = await self.analyze_image("", prompt)
-        return json.loads(_extract_json(response))
+        return self._parse_json_response(response, "preference analysis")
 
     async def generate_grading_suggestions(
         self, image_base64: str, user_profile: dict, num_suggestions: int = 3,
@@ -128,7 +187,28 @@ class AIProvider(ABC):
                 schema=COLOR_PARAMS_SCHEMA_DESCRIPTION,
             )
         response = await self.analyze_image(image_base64, prompt)
-        return json.loads(_extract_json(response))
+        return self._parse_json_response(response, "grading suggestions")
+
+    def _parse_json_response(self, response: str, context: str):
+        """Parse JSON from AI response with clear error reporting."""
+        if not response:
+            raise ValueError(
+                f"AI returned empty response for {context}. "
+                "The model may not support this request or content was filtered."
+            )
+        extracted = _extract_json(response)
+        try:
+            return json.loads(extracted)
+        except json.JSONDecodeError as e:
+            preview = response[:300]
+            logger.error(
+                "Failed to parse %s JSON. Error: %s\nRaw response (first 300 chars): %s",
+                context, e, preview,
+            )
+            raise ValueError(
+                f"AI response for {context} is not valid JSON. "
+                f"Raw response preview: {preview}"
+            ) from e
 
 
 class ClaudeProvider(AIProvider):
@@ -157,7 +237,7 @@ class ClaudeProvider(AIProvider):
 
         response = await self._client.messages.create(
             model=self.model,
-            max_tokens=4096,
+            max_tokens=16384,
             messages=[{"role": "user", "content": content}],
         )
         return response.content[0].text
@@ -189,9 +269,11 @@ class OpenAIProvider(AIProvider):
         response = await self._client.chat.completions.create(
             model=self.model,
             messages=[{"role": "user", "content": content}],
-            max_tokens=4096,
+            max_tokens=16384,
         )
-        return response.choices[0].message.content
+        result = response.choices[0].message.content
+        logger.debug("AI raw response from %s (first 500 chars): %.500s", self.model, result)
+        return result or ""
 
 
 class DeepSeekProvider(OpenAIProvider):
