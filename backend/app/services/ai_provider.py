@@ -115,6 +115,8 @@ def _extract_json(text: str | None) -> str:
 class AIProvider(ABC):
     """Abstract base class for AI providers."""
 
+    _max_tokens: int = 8192
+
     def __init__(self, api_key: str, model: str | None = None):
         self.api_key = api_key
         self.model = model
@@ -214,6 +216,8 @@ class AIProvider(ABC):
 class ClaudeProvider(AIProvider):
     """Claude (Anthropic) AI provider."""
 
+    _max_tokens = 16384
+
     def __init__(self, api_key: str, model: str | None = None):
         super().__init__(api_key, model or "claude-sonnet-4-5-20250929")
         self._client = anthropic.AsyncAnthropic(api_key=api_key)
@@ -237,7 +241,7 @@ class ClaudeProvider(AIProvider):
 
         response = await self._client.messages.create(
             model=self.model,
-            max_tokens=16384,
+            max_tokens=self._max_tokens,
             messages=[{"role": "user", "content": content}],
         )
         return response.content[0].text
@@ -269,7 +273,7 @@ class OpenAIProvider(AIProvider):
         response = await self._client.chat.completions.create(
             model=self.model,
             messages=[{"role": "user", "content": content}],
-            max_tokens=16384,
+            max_tokens=self._max_tokens,
         )
         result = response.choices[0].message.content
         logger.debug("AI raw response from %s (first 500 chars): %.500s", self.model, result)
